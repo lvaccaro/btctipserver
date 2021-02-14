@@ -1,0 +1,22 @@
+[package]
+name = "btctipserver"
+version = "0.1.0"
+authors = ["Luca Vaccaro <me@lvaccaro.com>"]
+edition = "2018"
+license = "MIT"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+bdk = { version = "0.3.0", default-features = false }
+bdk-macros = "^0.2"
+simple-server = "0.4.0"
+log = "0.4.0"
+env_logger = "0.8.2"
+serde_json = { version = "^1.0" }
+dirs-next = "2.0.0"
+rust-ini = "0.16"
+
+[features]
+default = ["electrum", "bdk/key-value-db"]
+electrum = ["bdk/electrum"]
