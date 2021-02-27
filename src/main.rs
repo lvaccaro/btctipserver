@@ -13,6 +13,7 @@ use std::fs;
 use std::path::PathBuf;
 use std::str::FromStr;
 use std::str;
+use std::env;
 
 use bdk::sled;
 use bdk::{Wallet};
@@ -113,9 +114,12 @@ fn redirect() -> Result<String, std::io::Error> {
     Ok(html)
 }
 
+/// Look up our server port number in PORT, for compatibility with Heroku.
+fn get_server_port() -> u16 {
+    env::var("PORT").ok().and_then(|p| p.parse().ok()).unwrap_or(8080)
+}
+
 fn main() {
-    let host = "127.0.0.1";
-    let port = "7878";
 
     let server = Server::new(|request, mut response| {
         println!("Request: {} {}", request.method(), request.uri());
@@ -191,5 +195,5 @@ fn main() {
         }
     });
 
-    server.listen(host, port);
+    server.listen("0.0.0.0", get_server_port().to_string().as_str());
 }
