@@ -156,13 +156,13 @@ fn main() {
                 let list = check_address(addr.to_string(), Option::from(h));
                 return match list {
                     Ok(list) => {
-                        println!("addr {} height {}", addr.to_string(), h.to_string());
+                        println!("addr {} height {}", addr, h);
                         for item in list.iter() {
                             println!("{} {}", item.value, item.height);
                             let _value = serde_json::json!({
                                 "value": item.value,
                                 "height": item.height,
-                                "tx_hash": item.tx_hash.to_string(),
+                                "tx_hash": item.tx_hash,
                             });
                         }
                         Ok(response.body("".as_bytes().to_vec())?)
