@@ -83,7 +83,7 @@ fn check_address(addr: String, from_height: Option<usize>) -> Result<Vec<ListUns
 
     let array = unspents.into_iter()
         .filter(|x| x.height >= from_height.unwrap_or(0))
-        .map(|x| x).collect();
+        .collect();
 
     Ok(array)
 }
@@ -92,7 +92,7 @@ fn html(address: String) -> Result<String, std::io::Error> {
     let list = check_address(address.as_str().to_string(), Option::from(0)).unwrap();
     let amount: u64 = list.iter().map(|x| x.value).sum();
 
-    let mut status = format!("No onchain tx found yet");
+    let mut status = "No onchain tx found yet".to_string();
     if amount > 0 {
         status = format!("Received {} sat", amount.to_string());
     }
@@ -148,7 +148,7 @@ fn main() {
             }
             (&Method::GET, "/bitcoin/api/check") => {
                 // curl 127.0.0.1:7878/bitcoin/api/check?tb1qm4safqvzu28jvjz5juta7qutfaqst7nsfsumuz:0
-                let mut query = request.uri().query().unwrap_or("").split(":");
+                let mut query = request.uri().query().unwrap_or("").split(':');
                 let addr = query.next().unwrap();
                 let height = query.next().unwrap();
                 let h: usize = height.parse::<usize>().unwrap();
@@ -159,7 +159,7 @@ fn main() {
                         println!("addr {} height {}", addr.to_string(), h.to_string());
                         for item in list.iter() {
                             println!("{} {}", item.value, item.height);
-                            let value = serde_json::json!({
+                            let _value = serde_json::json!({
                                 "value": item.value,
                                 "height": item.height,
                                 "tx_hash": item.tx_hash.to_string(),
