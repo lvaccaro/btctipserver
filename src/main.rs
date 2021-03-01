@@ -110,7 +110,7 @@ fn html(address: String) -> Result<String, std::io::Error> {
         .replace("{address}", address.as_str())
         .replace("{status}", status.as_str())
         .replace("{refresh-link}", link.as_str())
-        .replace("{refresh-timeout}", "30");
+        .replace("{refresh-timeout}", "10");
     Ok(txt)
 }
 
