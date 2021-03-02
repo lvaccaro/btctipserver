@@ -72,9 +72,9 @@ fn client() -> Result<Client, Error> {
     Client::new(url)
 }
 
-fn check_address(client: &Client, addr: String, from_height: Option<usize>) -> Result<Vec<ListUnspentRes>, bdk::Error> {
+fn check_address(client: &Client, addr: &str, from_height: Option<usize>) -> Result<Vec<ListUnspentRes>, bdk::Error> {
 
-    let monitor_script = Address::from_str(&addr)
+    let monitor_script = Address::from_str(addr)
         .unwrap()
         .script_pubkey();
 
@@ -89,9 +89,9 @@ fn check_address(client: &Client, addr: String, from_height: Option<usize>) -> R
     Ok(array)
 }
 
-fn html(address: String) -> Result<String, std::io::Error> {
+fn html(address: &str) -> Result<String, std::io::Error> {
     let client = client().unwrap();
-    let list = check_address(&client, address.as_str().to_string(), Option::from(0)).unwrap();
+    let list = check_address(&client, &address, Option::from(0)).unwrap();
 
     let status = match list.last() {
         None => { "No onchain tx found yet".to_string() }
@@ -162,7 +162,7 @@ fn main() {
                 let h: usize = height.parse::<usize>().unwrap();
 
                 let client = client().unwrap();
-                let list = check_address(&client, addr.to_string(), Option::from(h));
+                let list = check_address(&client, &addr, Option::from(h));
                 return match list {
                     Ok(list) => {
                         println!("addr {} height {}", addr, h);
@@ -181,7 +181,7 @@ fn main() {
             }
             (&Method::GET, "/bitcoin/") => {
                 let address = request.uri().query().unwrap();
-                return match html(address.to_string()) {
+                return match html(address) {
                     Ok(txt) => {
                         Ok(response.body(txt.as_bytes().to_vec())?)
                     },
