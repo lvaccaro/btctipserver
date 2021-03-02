@@ -74,7 +74,7 @@ fn client() -> Result<Client, Error> {
 
 fn check_address(client: &Client, addr: String, from_height: Option<usize>) -> Result<Vec<ListUnspentRes>, bdk::Error> {
 
-    let monitor_script = Address::from_str(addr.as_str())
+    let monitor_script = Address::from_str(&addr)
         .unwrap()
         .script_pubkey();
 
@@ -108,9 +108,9 @@ fn html(address: String) -> Result<String, std::io::Error> {
     let template = fs::read_to_string("assets/index.html").unwrap();
     let link = format!("/bitcoin/?{}", address);
     let txt = template
-        .replace("{address}", address.as_str())
-        .replace("{status}", status.as_str())
-        .replace("{refresh-link}", link.as_str())
+        .replace("{address}", &address)
+        .replace("{status}", &status)
+        .replace("{refresh-link}", &link)
         .replace("{refresh-timeout}", "10");
     Ok(txt)
 }
@@ -204,5 +204,5 @@ fn main() {
         }
     });
 
-    server.listen("0.0.0.0", get_server_port().to_string().as_str());
+    server.listen("0.0.0.0", &get_server_port().to_string());
 }
