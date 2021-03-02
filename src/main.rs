@@ -96,10 +96,11 @@ fn html(address: String) -> Result<String, std::io::Error> {
     let status = match list.last() {
         None => { "No onchain tx found yet".to_string() }
         Some(unspent) => {
-            let mut location = "in mempool".to_string();
-            if unspent.height > 0 {
-                location = format!("at {}", unspent.height.to_string());
-            }
+            let location = match unspent.height {
+                0 => "in mempool".to_string(),
+                _ => format!("at {}", unspent.height),
+            };
+
             format!("Received {} sat {}", unspent.value, location)
         }
     };
