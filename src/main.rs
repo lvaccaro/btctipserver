@@ -50,8 +50,8 @@ fn new_address() -> Result<Address, bdk::Error> {
     let tree = database.open_tree(wallet).unwrap();
 
     let wallet = Wallet::new_offline(
-        descriptor.to_string().as_str(),
-        Some(change_descriptor.to_string().as_str()),
+        descriptor,
+        Some(change_descriptor),
         network.parse().unwrap(),
         tree,
     )?;
@@ -117,7 +117,7 @@ fn html(address: String) -> Result<String, std::io::Error> {
 
 fn redirect() -> Result<String, std::io::Error> {
     let address = new_address().unwrap();
-    let link = format!("/bitcoin/?{}", address.to_string().as_str());
+    let link = format!("/bitcoin/?{}", address);
     let html = format!("<head><meta http-equiv=\"Refresh\" content=\"0; URL={}\"></head>", link);
     Ok(html)
 }
