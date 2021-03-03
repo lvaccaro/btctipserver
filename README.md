@@ -11,8 +11,7 @@ Build and run service (default port is 8080):
 cargo run server
 ```
 
-Open browser
-[localhost:8080](http://localhost:8080) .
+Open the local web page on your browser using url [localhost:8080/bitcoin](http://localhost:8080/bitcoin).
 
 ### Setup
 Configure your wallet parameters in `config.ini` file.
