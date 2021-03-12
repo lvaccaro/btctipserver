@@ -42,7 +42,6 @@ fn new_address() -> Result<Address, bdk::Error> {
     let section_bdk = conf.section(Some("BDK")).unwrap();
     // let dir = section_bdk.get("datadir").unwrap();
     let descriptor = section_bdk.get("descriptor").unwrap();
-    let change_descriptor = section_bdk.get("change_descriptor").unwrap();
     let network = section_bdk.get("network").unwrap();
     let wallet = section_bdk.get("wallet").unwrap();
 
@@ -51,7 +50,7 @@ fn new_address() -> Result<Address, bdk::Error> {
 
     let wallet = Wallet::new_offline(
         descriptor,
-        Some(change_descriptor),
+        None,
         network.parse().unwrap(),
         tree,
     )?;
