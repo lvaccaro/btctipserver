@@ -36,7 +36,7 @@ fn prepare_home_dir() -> PathBuf {
     dir
 }
 
-fn new_address() -> Result<Address, bdk::Error> {
+fn new_address() -> Result<(Address, u32), bdk::Error> {
     let conf = Ini::load_from_file("config.ini").unwrap();
 
     let section_bdk = conf.section(Some("BDK")).unwrap();
@@ -57,7 +57,7 @@ fn new_address() -> Result<Address, bdk::Error> {
     )?;
 
     let addr = wallet.get_new_address()?;
-    Ok(addr)
+    Ok((addr, 1))
 }
 
 fn client() -> Result<Client, Error> {
@@ -89,7 +89,14 @@ fn check_address(client: &Client, addr: &str, from_height: Option<usize>) -> Res
     Ok(array)
 }
 
-fn html(address: &str) -> Result<String, std::io::Error> {
+fn signed_descriptor() -> Result<String, std::io::Error> {
+    let conf = Ini::load_from_file("config.ini").unwrap();
+    let section_bdk = conf.section(Some("BDK")).unwrap();
+    let filename = section_bdk.get("signed_descriptor").unwrap();
+    return fs::read_to_string(filename)
+}
+
+fn html(address: &str, index: Option<&str>) -> Result<String, std::io::Error> {
     let client = client().unwrap();
     let list = check_address(&client, &address, Option::from(0)).unwrap();
 
@@ -106,9 +113,16 @@ fn html(address: &str) -> Result<String, std::io::Error> {
     };
 
     let template = fs::read_to_string("assets/index.html").unwrap();
-    let link = format!("/bitcoin/?{}", address);
+    let link = format!("/bitcoin/?{}:{}", address, index.unwrap_or(""));
+    let signed = signed_descriptor().unwrap_or("".to_string());
+    let mut address_index = index.unwrap_or("Unknown");
+    if address_index.is_empty() {
+        address_index = "Unknown"
+    }
     let txt = template
         .replace("{address}", &address)
+        .replace("{address-index}", &address_index)
+        .replace("{signed}", &signed)
         .replace("{status}", &status)
         .replace("{refresh-link}", &link)
         .replace("{refresh-timeout}", "10");
@@ -116,8 +130,8 @@ fn html(address: &str) -> Result<String, std::io::Error> {
 }
 
 fn redirect() -> Result<String, std::io::Error> {
-    let address = new_address().unwrap();
-    let link = format!("/bitcoin/?{}", address);
+    let (address, index) = new_address().unwrap();
+    let link = format!("/bitcoin/?{}:{}", address, index);
     let html = format!("<head><meta http-equiv=\"Refresh\" content=\"0; URL={}\"></head>", link);
     Ok(html)
 }
@@ -143,11 +157,12 @@ fn main() {
                 let addr = new_address();
                 //info!("addr {}", addr.to_string());
                 return match addr {
-                    Ok(a) => {
+                    Ok((a, i)) => {
                         info!("new addr {}", a.to_string());
                         let value = serde_json::json!({
                                 "network": a.network.to_string(),
-                                "address": a.to_string()
+                                "address": a.to_string(),
+                                "index": i
                             });
                         Ok(response.body(value.to_string().as_bytes().to_vec())?)
                     },
@@ -180,8 +195,10 @@ fn main() {
                 }
             }
             (&Method::GET, "/bitcoin/") => {
-                let address = request.uri().query().unwrap();
-                return match html(address) {
+                let mut query = request.uri().query().unwrap().split(":");
+                let address = query.next().unwrap();
+                let index = query.next();
+                return match html(address, index) {
                     Ok(txt) => {
                         Ok(response.body(txt.as_bytes().to_vec())?)
                     },
