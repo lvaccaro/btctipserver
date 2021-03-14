@@ -21,6 +21,7 @@ use bdk::bitcoin::Address;
 
 use simple_server::{Method, Server, StatusCode};
 use bdk::electrum_client::{Client, ElectrumApi, ListUnspentRes, Error};
+use bdk::database::Database;
 
 fn prepare_home_dir() -> PathBuf {
     let mut dir = PathBuf::new();
@@ -53,11 +54,12 @@ fn new_address() -> Result<(Address, u32), bdk::Error> {
         descriptor,
         Some(change_descriptor),
         network.parse().unwrap(),
-        tree,
+        tree.clone(),
     )?;
 
     let addr = wallet.get_new_address()?;
-    Ok((addr, 1))
+    let index = tree.get_last_index(bdk::KeychainKind::External).unwrap().unwrap_or(0);
+    Ok((addr, index))
 }
 
 fn client() -> Result<Client, Error> {
