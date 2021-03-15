@@ -14,9 +14,13 @@ cargo run server
 Open the local web page on your browser using url [localhost:8080/bitcoin](http://localhost:8080/bitcoin).
 
 ### Setup
-Configure your wallet parameters in `config.ini` file.
+Configure your wallet parameters in `config.ini` file. 
+See `config_example.ini` as example.
 
 ### Deploy on heroku
-Fork this project, update `config.ini` file and press the button.
+1. Fork this project 
+2. Copy `config_default.ini` to `config.ini`
+3. Setup your node with `config.ini` file
+4. Press the following button
 
 [![Deploy](https://www.herokucdn.com/deploy/button.svg)](https://heroku.com/deploy)
