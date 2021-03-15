@@ -117,7 +117,7 @@ fn html(address: &str) -> Result<String, std::io::Error> {
 fn redirect() -> Result<String, std::io::Error> {
     let address = new_address().unwrap();
     let link = format!("/bitcoin/?{}", address);
-    let html = format!("<head><meta http-equiv=\"Refresh\" content=\"0; URL={}\"></head>", link);
+    let html = format!("<head><meta name='robots' content='noindex'><meta http-equiv=\"Refresh\" content=\"0; URL={}\"></head>", link);
     Ok(html)
 }
 
@@ -197,7 +197,7 @@ fn main() {
             }
             (&Method::GET, "/") => {
                 let link = "/bitcoin";
-                let redirect = format!("<head><meta http-equiv=\"Refresh\" content=\"0; URL={}\"></head>", link);
+                let redirect = format!("<head><meta name='robots' content='noindex'><meta http-equiv=\"Refresh\" content=\"0; URL={}\"></head>", link);
                 Ok(response.body(redirect.as_bytes().to_vec())?)
             }
             (_, _) => {
