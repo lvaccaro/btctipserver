@@ -2,6 +2,8 @@
 <head>
     <meta property="address" content="{address}" />
     <meta property="status" content="{status}" />
+    <meta property="address-index" content="{address-index}" />
+    <meta property="signed" content="{signed}" />
     <meta http-equiv="Refresh" content="{refresh-timeout}; URL={refresh-link}"></head>
 
     <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.4.1/css/bootstrap.min.css" integrity="sha384-Vkoo8x4CGsO3+Hhxv8T/Q5PaXtkKtu6ug5TOeNV6gBiFeWPGFN9MuhOf23Q9Ifjh" crossorigin="anonymous">
@@ -130,6 +132,37 @@
                 <a href="/bitcoin">Generate new address</a>
             </small>
         </div>
+        <div class="my-3 p-3 bg-white rounded box-shadow" id="verify-block">
+            <div class="media text-muted pt-3">
+                <p class="media-body pb-3 mb-0 small lh-125 border-bottom border-gray">
+                    <strong class="d-block text-gray-dark">Don't trust, verify!</strong>
+                </p>
+            </div>
+            <div class="media text-muted pt-3">
+                <p class="media-body pb-3 mb-0 small lh-125 border-gray">
+                    <span>1. Copy the following signature into <code>file.txt</code></span>
+                </p>
+            </div>
+            <small class="d-block text-left mt-12 border-bottom">
+                <pre id="signed-text"></pre>
+            </small>
+            <div class="media text-muted pt-3">
+                <p class="media-body pb-3 mb-0 small lh-125 border-gray">
+                    <span>2. Verify the message with</span>
+                </p>
+            </div>
+            <small class="d-block text-left mt-12 border-bottom">
+                <pre>$ gpg --verify file.txt</pre>
+            </small>
+            <div class="media text-muted pt-3">
+                <p class="media-body pb-3 mb-0 small lh-125 border-gray">
+                    <span>3. Derive the address from descriptor in signed message at address index <span id="index-text"></span></span>
+                </p>
+            </div>
+            <small class="d-block text-left mt-12 border-bottom">
+                <pre>$ bitcoin-cli deriveaddresses "descriptor" "index"</pre>
+            </small>
+        </div>
     </main>
 
     <script src="https://code.jquery.com/jquery-3.4.1.slim.min.js" integrity="sha384-J6qa4849blE2+poT4WnyKhv5vZF5SrPo0iEjwBvKU7imGFAV0wwj1yYfoRSJoZ+n" crossorigin="anonymous"></script>
@@ -140,21 +173,24 @@
     <script type="text/javascript">
 
         // get Info from metatag
-        function getAddress() {
-          return document.querySelector("meta[property='address']").content
-        }
-        function getStatus() {
-          return document.querySelector("meta[property='status']").content
+        function getMetatag(tag) {
+          return document.querySelector("meta[property='"+tag+"']").content
         }
 
         // Fill info into html text
-        document.getElementById("address-text").innerHTML = getAddress()
-        document.getElementById("address-link").href = "bitcoin://" + getAddress()
-        document.getElementById("status-text").innerHTML = getStatus()
+        document.getElementById("address-text").innerHTML = getMetatag('address')
+        document.getElementById("address-link").href = "bitcoin://" + getMetatag('address')
+        document.getElementById("status-text").innerHTML = getMetatag('status')
+        document.getElementById("index-text").innerHTML = getMetatag('address-index')
+
+        var signed = document.querySelector("meta[property='signed']").content
+        document.getElementById("signed-text").innerHTML = signed
+        if (signed == "")
+            document.getElementById("verify-block").style.display = "none"
 
         // Display qr code
         var qrcode = new QRCode(document.getElementById("qrcode"), {
-            text: getAddress(),
+            text: getMetatag('address'),
             width: 128,
             height: 128,
             colorDark : "#000000",
