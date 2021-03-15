@@ -195,8 +195,12 @@ fn main() {
                     Err(e) => Ok(response.body(e.to_string().as_bytes().to_vec())?)
                 }
             }
+            (&Method::GET, "/") => {
+                let link = "/bitcoin";
+                let redirect = format!("<head><meta http-equiv=\"Refresh\" content=\"0; URL={}\"></head>", link);
+                Ok(response.body(redirect.as_bytes().to_vec())?)
+            }
             (_, _) => {
-                println!("uri");
                 response.status(StatusCode::NOT_FOUND);
                 Ok(response.body("<h1>404</h1><p>Not found!<p>".as_bytes().to_vec())?)
             }
