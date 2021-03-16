@@ -104,11 +104,16 @@ fn html(address: &str) -> Result<String, std::io::Error> {
         }
     };
 
+    let conf = Ini::load_from_file("config.ini").unwrap();
+    let section_bdk = conf.section(Some("STYLE")).unwrap();
+    let footer = section_bdk.get("footer").unwrap_or("");
+
     let template = fs::read_to_string("assets/index.html").unwrap();
     let link = format!("/bitcoin/?{}", address);
     let txt = template
         .replace("{address}", &address)
         .replace("{status}", &status)
+        .replace("{footer}", &footer)
         .replace("{refresh-link}", &link)
         .replace("{refresh-timeout}", "10");
     Ok(txt)
