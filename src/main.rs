@@ -1,31 +1,34 @@
 #[macro_use]
 extern crate log;
-extern crate env_logger;
-extern crate simple_server;
 extern crate bdk;
-extern crate serde_json;
 extern crate bdk_macros;
+extern crate env_logger;
 extern crate ini;
+extern crate serde_json;
+extern crate simple_server;
 
 use ini::Ini;
 
+use std::env;
 use std::fs;
 use std::path::PathBuf;
-use std::str::FromStr;
 use std::str;
-use std::env;
+use std::str::FromStr;
 
-use bdk::sled;
-use bdk::{Wallet};
 use bdk::bitcoin::{Address, Network};
+use bdk::sled;
+use bdk::Wallet;
 
+use bdk::electrum_client::{Client, ElectrumApi, Error, ListUnspentRes};
 use simple_server::{Method, Server, StatusCode};
-use bdk::electrum_client::{Client, ElectrumApi, ListUnspentRes, Error};
 
-use bdk::blockchain::{AnyBlockchainConfig, ElectrumBlockchainConfig, AnyBlockchain, ConfigurableBlockchain, log_progress};
-use std::sync::{Arc, Mutex};
-use bdk::wallet::AddressIndex::LastUnused;
+use bdk::blockchain::{
+    log_progress, AnyBlockchain, AnyBlockchainConfig, ConfigurableBlockchain,
+    ElectrumBlockchainConfig,
+};
 use bdk::sled::Tree;
+use bdk::wallet::AddressIndex::LastUnused;
+use std::sync::{Arc, Mutex};
 
 fn prepare_home_dir(datadir: &str) -> PathBuf {
     let mut dir = PathBuf::new();
@@ -48,24 +51,24 @@ fn last_unused_address(wallet: &Wallet<AnyBlockchain, Tree>) -> Result<Address, 
 
 fn client(network: &Network) -> Result<Client, Error> {
     let url = match network {
-        bdk::bitcoin::Network::Bitcoin => { "ssl://electrum.blockstream.info:50002" }
-        bdk::bitcoin::Network::Testnet => { "ssl://electrum.blockstream.info:60002"}
-        _ => { "" }
+        bdk::bitcoin::Network::Bitcoin => "ssl://electrum.blockstream.info:50002",
+        bdk::bitcoin::Network::Testnet => "ssl://electrum.blockstream.info:60002",
+        _ => "",
     };
     Client::new(url)
 }
 
-fn check_address(client: &Client, addr: &str, from_height: Option<usize>) -> Result<Vec<ListUnspentRes>, bdk::Error> {
+fn check_address(
+    client: &Client,
+    addr: &str,
+    from_height: Option<usize>,
+) -> Result<Vec<ListUnspentRes>, bdk::Error> {
+    let monitor_script = Address::from_str(addr).unwrap().script_pubkey();
 
-    let monitor_script = Address::from_str(addr)
-        .unwrap()
-        .script_pubkey();
+    let unspents = client.script_list_unspent(&monitor_script).unwrap();
 
-    let unspents = client
-        .script_list_unspent(&monitor_script)
-        .unwrap();
-
-    let array = unspents.into_iter()
+    let array = unspents
+        .into_iter()
         .filter(|x| x.height >= from_height.unwrap_or(0))
         .collect();
 
@@ -77,7 +80,7 @@ fn html(network: &Network, address: &str) -> Result<String, std::io::Error> {
     let list = check_address(&client, &address, Option::from(0)).unwrap();
 
     let status = match list.last() {
-        None => { "No onchain tx found yet".to_string() }
+        None => "No onchain tx found yet".to_string(),
         Some(unspent) => {
             let location = match unspent.height {
                 0 => "in mempool".to_string(),
@@ -106,12 +109,15 @@ fn redirect(address: Address) -> Result<String, std::io::Error> {
 
 /// Look up our server port number in PORT, for compatibility with Heroku.
 fn get_server_port() -> u16 {
-    env::var("PORT").ok().and_then(|p| p.parse().ok()).unwrap_or(8080)
+    env::var("PORT")
+        .ok()
+        .and_then(|p| p.parse().ok())
+        .unwrap_or(8080)
 }
 
 fn main() {
     env_logger::init();
-    
+
     // load config from ini file
     let conf = Ini::load_from_file("config.ini").unwrap();
     let section_bdk = conf.section(Some("BDK")).unwrap();
@@ -121,11 +127,11 @@ fn main() {
     let network = Network::from_str(network).unwrap();
     let wallet = section_bdk.get("wallet").unwrap();
     let electrum = section_bdk.get("electrum").unwrap();
-    
+
     // setup database
     let database = sled::open(prepare_home_dir(datadir).to_str().unwrap()).unwrap();
     let tree = database.open_tree(wallet).unwrap();
-    
+
     // setup electrum blockchain client
     let electrum_config = AnyBlockchainConfig::Electrum(ElectrumBlockchainConfig {
         url: electrum.to_string(),
@@ -133,7 +139,7 @@ fn main() {
         retry: 3,
         timeout: Some(2),
     });
-    
+
     // create wallet shared by all requests
     let wallet = Wallet::new(
         descriptor,
@@ -141,7 +147,8 @@ fn main() {
         network,
         tree,
         AnyBlockchain::from_config(&electrum_config).unwrap(),
-    ).unwrap();
+    )
+    .unwrap();
     wallet.sync(log_progress(), None).unwrap();
     let wallet_mutex = Arc::new(Mutex::new(wallet));
 
@@ -155,7 +162,7 @@ fn main() {
 
         // unlock wallet mutex for this request
         let wallet = wallet_mutex.lock().unwrap();
-        
+
         match (request.method(), request.uri().path()) {
             (&Method::GET, "/bitcoin/api/last_unused") => {
                 let address = last_unused_address(&*wallet);
@@ -163,12 +170,12 @@ fn main() {
                     Ok(a) => {
                         info!("last unused addr {}", a.to_string());
                         let value = serde_json::json!({
-                                "network": a.network.to_string(),
-                                "address": a.to_string()
-                            });
+                            "network": a.network.to_string(),
+                            "address": a.to_string()
+                        });
                         Ok(response.body(value.to_string().as_bytes().to_vec())?)
-                    },
-                    Err(e) => Ok(response.body(e.to_string().as_bytes().to_vec())?)
+                    }
+                    Err(e) => Ok(response.body(e.to_string().as_bytes().to_vec())?),
                 };
             }
             (&Method::GET, "/bitcoin/api/check") => {
@@ -192,27 +199,23 @@ fn main() {
                             });
                         }
                         Ok(response.body("".as_bytes().to_vec())?)
-                    },
-                    Err(e) => Ok(response.body(e.to_string().as_bytes().to_vec())?)
-                }
+                    }
+                    Err(e) => Ok(response.body(e.to_string().as_bytes().to_vec())?),
+                };
             }
             (&Method::GET, "/bitcoin/") => {
                 let address = request.uri().query().unwrap();
                 return match html(&network, address) {
-                    Ok(txt) => {
-                        Ok(response.body(txt.as_bytes().to_vec())?)
-                    },
-                    Err(e) => Ok(response.body(e.to_string().as_bytes().to_vec())?)
-                }
+                    Ok(txt) => Ok(response.body(txt.as_bytes().to_vec())?),
+                    Err(e) => Ok(response.body(e.to_string().as_bytes().to_vec())?),
+                };
             }
             (&Method::GET, "/bitcoin") => {
                 let address = last_unused_address(&*wallet).unwrap();
                 return match redirect(address) {
-                    Ok(txt) => {
-                        Ok(response.body(txt.as_bytes().to_vec())?)
-                    },
-                    Err(e) => Ok(response.body(e.to_string().as_bytes().to_vec())?)
-                }
+                    Ok(txt) => Ok(response.body(txt.as_bytes().to_vec())?),
+                    Err(e) => Ok(response.body(e.to_string().as_bytes().to_vec())?),
+                };
             }
             (&Method::GET, "/") => {
                 let link = "/bitcoin";
