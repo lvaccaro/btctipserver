@@ -19,7 +19,7 @@ use bdk::bitcoin::{Address, Network};
 use bdk::sled;
 use bdk::Wallet;
 
-use bdk::electrum_client::{Client, ElectrumApi, Error, ListUnspentRes};
+use bdk::electrum_client::{Client, ElectrumApi, ListUnspentRes};
 use simple_server::{Method, Server, StatusCode};
 
 use bdk::blockchain::{
@@ -49,15 +49,6 @@ fn last_unused_address(wallet: &Wallet<AnyBlockchain, Tree>) -> Result<Address, 
     wallet.get_address(LastUnused)
 }
 
-fn client(network: &Network) -> Result<Client, Error> {
-    let url = match network {
-        bdk::bitcoin::Network::Bitcoin => "ssl://electrum.blockstream.info:50002",
-        bdk::bitcoin::Network::Testnet => "ssl://electrum.blockstream.info:60002",
-        _ => "",
-    };
-    Client::new(url)
-}
-
 fn check_address(
     client: &Client,
     addr: &str,
@@ -75,8 +66,8 @@ fn check_address(
     Ok(array)
 }
 
-fn html(network: &Network, address: &str) -> Result<String, std::io::Error> {
-    let client = client(network).unwrap();
+fn html(electrum: &str, address: &str) -> Result<String, std::io::Error> {
+    let client = Client::new(electrum).unwrap();
     let list = check_address(&client, &address, Option::from(0)).unwrap();
 
     let status = match list.last() {
@@ -126,7 +117,7 @@ fn main() {
     let network = section_bdk.get("network").unwrap();
     let network = Network::from_str(network).unwrap();
     let wallet = section_bdk.get("wallet").unwrap();
-    let electrum = section_bdk.get("electrum").unwrap();
+    let electrum = section_bdk.get("electrum").unwrap().to_string();
 
     // setup database
     let database = sled::open(prepare_home_dir(datadir).to_str().unwrap()).unwrap();
@@ -134,7 +125,7 @@ fn main() {
 
     // setup electrum blockchain client
     let electrum_config = AnyBlockchainConfig::Electrum(ElectrumBlockchainConfig {
-        url: electrum.to_string(),
+        url: electrum.clone(),
         socks5: None,
         retry: 3,
         timeout: Some(2),
@@ -153,11 +144,11 @@ fn main() {
     let wallet_mutex = Arc::new(Mutex::new(wallet));
 
     let server = Server::new(move |request, mut response| {
-        println!("Request: {} {}", request.method(), request.uri());
-        println!("Body: {}", str::from_utf8(request.body()).unwrap());
-        println!("Headers:");
+        debug!("Request: {} {}", request.method(), request.uri());
+        debug!("Body: {}", str::from_utf8(request.body()).unwrap());
+        debug!("Headers:");
         for (key, value) in request.headers() {
-            println!("{}: {}", key, value.to_str().unwrap());
+            debug!("{}: {}", key, value.to_str().unwrap());
         }
 
         // unlock wallet mutex for this request
@@ -185,13 +176,13 @@ fn main() {
                 let height = query.next().unwrap();
                 let h: usize = height.parse::<usize>().unwrap();
 
-                let client = client(&network).unwrap();
+                let client = Client::new(electrum.as_str()).unwrap();
                 let list = check_address(&client, &addr, Option::from(h));
                 return match list {
                     Ok(list) => {
-                        println!("addr {} height {}", addr, h);
+                        debug!("addr {} height {}", addr, h);
                         for item in list.iter() {
-                            println!("{} {}", item.value, item.height);
+                            debug!("{} {}", item.value, item.height);
                             let _value = serde_json::json!({
                                 "value": item.value,
                                 "height": item.height,
@@ -204,8 +195,8 @@ fn main() {
                 };
             }
             (&Method::GET, "/bitcoin/") => {
-                let address = request.uri().query().unwrap();
-                return match html(&network, address) {
+                let address = request.uri().query().unwrap(); // TODO handle missing address
+                return match html(electrum.as_str(), address) {
                     Ok(txt) => Ok(response.body(txt.as_bytes().to_vec())?),
                     Err(e) => Ok(response.body(e.to_string().as_bytes().to_vec())?),
                 };

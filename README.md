@@ -8,7 +8,7 @@ Another Bitcoin payment service, based on [bdk](https://github.com/bitcoindevkit
 ### Get it start
 Build and run service (default port is 8080):
 ```
-cargo run server
+RUST_LOG=info cargo run
 ```
 
 Open the local web page on your browser using url [localhost:8080/bitcoin](http://localhost:8080/bitcoin).
