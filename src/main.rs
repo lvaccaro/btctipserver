@@ -17,15 +17,20 @@ use std::env;
 
 use bdk::sled;
 use bdk::{Wallet};
-use bdk::bitcoin::Address;
+use bdk::bitcoin::{Address, Network};
 
 use simple_server::{Method, Server, StatusCode};
 use bdk::electrum_client::{Client, ElectrumApi, ListUnspentRes, Error};
 
-fn prepare_home_dir() -> PathBuf {
+use bdk::blockchain::{AnyBlockchainConfig, ElectrumBlockchainConfig, AnyBlockchain, ConfigurableBlockchain, log_progress};
+use std::sync::{Arc, Mutex};
+use bdk::wallet::AddressIndex::LastUnused;
+use bdk::sled::Tree;
+
+fn prepare_home_dir(datadir: &str) -> PathBuf {
     let mut dir = PathBuf::new();
     dir.push(&dirs_next::home_dir().unwrap());
-    dir.push(".bdk-bitcoin");
+    dir.push(datadir);
 
     if !dir.exists() {
         info!("Creating home directory {}", dir.as_path().display());
@@ -36,34 +41,13 @@ fn prepare_home_dir() -> PathBuf {
     dir
 }
 
-fn new_address() -> Result<Address, bdk::Error> {
-    let conf = Ini::load_from_file("config.ini").unwrap();
-
-    let section_bdk = conf.section(Some("BDK")).unwrap();
-    // let dir = section_bdk.get("datadir").unwrap();
-    let descriptor = section_bdk.get("descriptor").unwrap();
-    let network = section_bdk.get("network").unwrap();
-    let wallet = section_bdk.get("wallet").unwrap();
-
-    let database = sled::open(prepare_home_dir().to_str().unwrap()).unwrap();
-    let tree = database.open_tree(wallet).unwrap();
-
-    let wallet = Wallet::new_offline(
-        descriptor,
-        None,
-        network.parse().unwrap(),
-        tree,
-    )?;
-
-    let addr = wallet.get_new_address()?;
-    Ok(addr)
+fn last_unused_address(wallet: &Wallet<AnyBlockchain, Tree>) -> Result<Address, bdk::Error> {
+    wallet.sync(log_progress(), None)?;
+    wallet.get_address(LastUnused)
 }
 
-fn client() -> Result<Client, Error> {
-    let conf = Ini::load_from_file("config.ini").unwrap();
-    let section_bdk = conf.section(Some("BDK")).unwrap();
-    let network = section_bdk.get("network").unwrap();
-    let url = match network.parse().unwrap() {
+fn client(network: &Network) -> Result<Client, Error> {
+    let url = match network {
         bdk::bitcoin::Network::Bitcoin => { "ssl://electrum.blockstream.info:50002" }
         bdk::bitcoin::Network::Testnet => { "ssl://electrum.blockstream.info:60002"}
         _ => { "" }
@@ -88,8 +72,8 @@ fn check_address(client: &Client, addr: &str, from_height: Option<usize>) -> Res
     Ok(array)
 }
 
-fn html(address: &str) -> Result<String, std::io::Error> {
-    let client = client().unwrap();
+fn html(network: &Network, address: &str) -> Result<String, std::io::Error> {
+    let client = client(network).unwrap();
     let list = check_address(&client, &address, Option::from(0)).unwrap();
 
     let status = match list.last() {
@@ -114,8 +98,7 @@ fn html(address: &str) -> Result<String, std::io::Error> {
     Ok(txt)
 }
 
-fn redirect() -> Result<String, std::io::Error> {
-    let address = new_address().unwrap();
+fn redirect(address: Address) -> Result<String, std::io::Error> {
     let link = format!("/bitcoin/?{}", address);
     let html = format!("<head><meta name='robots' content='noindex'><meta http-equiv=\"Refresh\" content=\"0; URL={}\"></head>", link);
     Ok(html)
@@ -127,8 +110,42 @@ fn get_server_port() -> u16 {
 }
 
 fn main() {
+    env_logger::init();
+    
+    // load config from ini file
+    let conf = Ini::load_from_file("config.ini").unwrap();
+    let section_bdk = conf.section(Some("BDK")).unwrap();
+    let datadir = section_bdk.get("datadir").unwrap();
+    let descriptor = section_bdk.get("descriptor").unwrap();
+    let network = section_bdk.get("network").unwrap();
+    let network = Network::from_str(network).unwrap();
+    let wallet = section_bdk.get("wallet").unwrap();
+    let electrum = section_bdk.get("electrum").unwrap();
+    
+    // setup database
+    let database = sled::open(prepare_home_dir(datadir).to_str().unwrap()).unwrap();
+    let tree = database.open_tree(wallet).unwrap();
+    
+    // setup electrum blockchain client
+    let electrum_config = AnyBlockchainConfig::Electrum(ElectrumBlockchainConfig {
+        url: electrum.to_string(),
+        socks5: None,
+        retry: 3,
+        timeout: Some(2),
+    });
+    
+    // create wallet shared by all requests
+    let wallet = Wallet::new(
+        descriptor,
+        None,
+        network,
+        tree,
+        AnyBlockchain::from_config(&electrum_config).unwrap(),
+    ).unwrap();
+    wallet.sync(log_progress(), None).unwrap();
+    let wallet_mutex = Arc::new(Mutex::new(wallet));
 
-    let server = Server::new(|request, mut response| {
+    let server = Server::new(move |request, mut response| {
         println!("Request: {} {}", request.method(), request.uri());
         println!("Body: {}", str::from_utf8(request.body()).unwrap());
         println!("Headers:");
@@ -136,14 +153,15 @@ fn main() {
             println!("{}: {}", key, value.to_str().unwrap());
         }
 
+        // unlock wallet mutex for this request
+        let wallet = wallet_mutex.lock().unwrap();
+        
         match (request.method(), request.uri().path()) {
-            (&Method::GET, "/bitcoin/api/new") => {
-                // curl 127.0.0.1:7878/bitcoin/api/new
-                let addr = new_address();
-                //info!("addr {}", addr.to_string());
-                return match addr {
+            (&Method::GET, "/bitcoin/api/last_unused") => {
+                let address = last_unused_address(&*wallet);
+                return match address {
                     Ok(a) => {
-                        info!("new addr {}", a.to_string());
+                        info!("last unused addr {}", a.to_string());
                         let value = serde_json::json!({
                                 "network": a.network.to_string(),
                                 "address": a.to_string()
@@ -160,7 +178,7 @@ fn main() {
                 let height = query.next().unwrap();
                 let h: usize = height.parse::<usize>().unwrap();
 
-                let client = client().unwrap();
+                let client = client(&network).unwrap();
                 let list = check_address(&client, &addr, Option::from(h));
                 return match list {
                     Ok(list) => {
@@ -180,7 +198,7 @@ fn main() {
             }
             (&Method::GET, "/bitcoin/") => {
                 let address = request.uri().query().unwrap();
-                return match html(address) {
+                return match html(&network, address) {
                     Ok(txt) => {
                         Ok(response.body(txt.as_bytes().to_vec())?)
                     },
@@ -188,7 +206,8 @@ fn main() {
                 }
             }
             (&Method::GET, "/bitcoin") => {
-                return match redirect() {
+                let address = last_unused_address(&*wallet).unwrap();
+                return match redirect(address) {
                     Ok(txt) => {
                         Ok(response.body(txt.as_bytes().to_vec())?)
                     },
