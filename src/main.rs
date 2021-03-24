@@ -23,7 +23,8 @@ use bdk::Wallet;
 use bdk::electrum_client::{Client, ElectrumApi, ListUnspentRes};
 use simple_server::{Method, Server, StatusCode};
 
-use crate::config::read_config;
+use crate::config::{read_config, Config};
+use crate::error::Error;
 use bdk::blockchain::{
     log_progress, AnyBlockchain, AnyBlockchainConfig, ConfigurableBlockchain,
     ElectrumBlockchainConfig,
@@ -111,6 +112,7 @@ fn get_server_port() -> u16 {
 fn main() {
     env_logger::init();
 
+    // Read configuration file
     let conf = match read_config() {
         Ok(config) => config,
         Err(e) => {
@@ -119,28 +121,15 @@ fn main() {
         }
     };
 
-    // setup database
-    let database = sled::open(prepare_home_dir(&conf.datadir).to_str().unwrap()).unwrap();
-    let tree = database.open_tree(&conf.wallet).unwrap();
+    // Setup wallet
+    let wallet = match setup_wallet(&conf) {
+        Ok(wallet) => wallet,
+        Err(e) => {
+            error!("{}", e);
+            return;
+        }
+    };
 
-    // setup electrum blockchain client
-    let electrum_config = AnyBlockchainConfig::Electrum(ElectrumBlockchainConfig {
-        url: conf.electrum.clone(),
-        socks5: None,
-        retry: 3,
-        timeout: Some(2),
-    });
-
-    // create wallet shared by all requests
-    let wallet = Wallet::new(
-        &conf.descriptor,
-        None,
-        conf.network,
-        tree,
-        AnyBlockchain::from_config(&electrum_config).unwrap(),
-    )
-    .unwrap();
-    wallet.sync(log_progress(), None).unwrap();
     let wallet_mutex = Arc::new(Mutex::new(wallet));
     let host = conf.host.clone();
 
@@ -222,4 +211,29 @@ fn main() {
     });
 
     server.listen(&host, &get_server_port().to_string());
+}
+
+fn setup_wallet(conf: &Config) -> Result<Wallet<AnyBlockchain, Tree>, Error> {
+    // setup database
+    let database = sled::open(prepare_home_dir(&conf.datadir).to_str().unwrap())?;
+    let tree = database.open_tree(&conf.wallet)?;
+
+    // setup electrum blockchain client
+    let electrum_config = AnyBlockchainConfig::Electrum(ElectrumBlockchainConfig {
+        url: conf.electrum.clone(),
+        socks5: None,
+        retry: 3,
+        timeout: Some(2),
+    });
+
+    // create wallet shared by all requests
+    let wallet = Wallet::new(
+        &conf.descriptor,
+        None,
+        conf.network,
+        tree,
+        AnyBlockchain::from_config(&electrum_config)?,
+    )?;
+    wallet.sync(log_progress(), None)?;
+    Ok(wallet)
 }
