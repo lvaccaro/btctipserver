@@ -1,3 +1,6 @@
+mod config;
+mod error;
+
 #[macro_use]
 extern crate log;
 extern crate bdk;
@@ -7,21 +10,20 @@ extern crate ini;
 extern crate serde_json;
 extern crate simple_server;
 
-use ini::Ini;
-
 use std::env;
 use std::fs;
 use std::path::PathBuf;
 use std::str;
 use std::str::FromStr;
 
-use bdk::bitcoin::{Address, Network};
+use bdk::bitcoin::Address;
 use bdk::sled;
 use bdk::Wallet;
 
 use bdk::electrum_client::{Client, ElectrumApi, ListUnspentRes};
 use simple_server::{Method, Server, StatusCode};
 
+use crate::config::read_config;
 use bdk::blockchain::{
     log_progress, AnyBlockchain, AnyBlockchainConfig, ConfigurableBlockchain,
     ElectrumBlockchainConfig,
@@ -109,23 +111,21 @@ fn get_server_port() -> u16 {
 fn main() {
     env_logger::init();
 
-    // load config from ini file
-    let conf = Ini::load_from_file("config.ini").unwrap();
-    let section_bdk = conf.section(Some("BDK")).unwrap();
-    let datadir = section_bdk.get("datadir").unwrap();
-    let descriptor = section_bdk.get("descriptor").unwrap();
-    let network = section_bdk.get("network").unwrap();
-    let network = Network::from_str(network).unwrap();
-    let wallet = section_bdk.get("wallet").unwrap();
-    let electrum = section_bdk.get("electrum").unwrap().to_string();
+    let conf = match read_config() {
+        Ok(config) => config,
+        Err(e) => {
+            error!("{}", e);
+            return;
+        }
+    };
 
     // setup database
-    let database = sled::open(prepare_home_dir(datadir).to_str().unwrap()).unwrap();
-    let tree = database.open_tree(wallet).unwrap();
+    let database = sled::open(prepare_home_dir(&conf.datadir).to_str().unwrap()).unwrap();
+    let tree = database.open_tree(&conf.wallet).unwrap();
 
     // setup electrum blockchain client
     let electrum_config = AnyBlockchainConfig::Electrum(ElectrumBlockchainConfig {
-        url: electrum.clone(),
+        url: conf.electrum.clone(),
         socks5: None,
         retry: 3,
         timeout: Some(2),
@@ -133,15 +133,16 @@ fn main() {
 
     // create wallet shared by all requests
     let wallet = Wallet::new(
-        descriptor,
+        &conf.descriptor,
         None,
-        network,
+        conf.network,
         tree,
         AnyBlockchain::from_config(&electrum_config).unwrap(),
     )
     .unwrap();
     wallet.sync(log_progress(), None).unwrap();
     let wallet_mutex = Arc::new(Mutex::new(wallet));
+    let host = conf.host.clone();
 
     let server = Server::new(move |request, mut response| {
         debug!("Request: {} {}", request.method(), request.uri());
@@ -176,7 +177,7 @@ fn main() {
                 let height = query.next().unwrap();
                 let h: usize = height.parse::<usize>().unwrap();
 
-                let client = Client::new(electrum.as_str()).unwrap();
+                let client = Client::new(&conf.electrum).unwrap();
                 let list = check_address(&client, &addr, Option::from(h));
                 return match list {
                     Ok(list) => {
@@ -196,7 +197,7 @@ fn main() {
             }
             (&Method::GET, "/bitcoin/") => {
                 let address = request.uri().query().unwrap(); // TODO handle missing address
-                return match html(electrum.as_str(), address) {
+                return match html(&conf.electrum, address) {
                     Ok(txt) => Ok(response.body(txt.as_bytes().to_vec())?),
                     Err(e) => Ok(response.body(e.to_string().as_bytes().to_vec())?),
                 };
@@ -220,5 +221,5 @@ fn main() {
         }
     });
 
-    server.listen("0.0.0.0", &get_server_port().to_string());
+    server.listen(&host, &get_server_port().to_string());
 }

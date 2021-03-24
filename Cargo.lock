@@ -54,12 +54,11 @@ dependencies = [
 
 [[package]]
 name = "bdk"
-version = "0.3.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "e2fd4c84e2baef750794e7c3f317e37c0c611ef7b29c9a9f18c7e51940dbfdb5"
+version = "0.4.1-dev"
+source = "git+https://github.com/bitcoindevkit/bdk.git?rev=c456a25#c456a252f8c08112d3f98fe3e2427c187b69dbf0"
 dependencies = [
  "async-trait",
- "bdk-macros",
+ "bdk-macros 0.3.0",
  "bitcoin",
  "electrum-client",
  "js-sys",
@@ -84,6 +83,17 @@ dependencies = [
 ]
 
 [[package]]
+name = "bdk-macros"
+version = "0.3.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "b96757dbe9c7e0a8f0635c5366464d9c713528e111f47490e96385f70d6a67a6"
+dependencies = [
+ "proc-macro2",
+ "quote",
+ "syn",
+]
+
+[[package]]
 name = "bech32"
 version = "0.7.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -91,9 +101,9 @@ checksum = "2dabbe35f96fb9507f7330793dc490461b2962659ac5d427181e451a623751d1"
 
 [[package]]
 name = "bitcoin"
-version = "0.25.2"
+version = "0.26.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "aefc9be9f17185f4ebccae6575d342063f775924d57df0000edb1880c0fb7095"
+checksum = "1ec5f88a446d66e7474a3b8fa2e348320b574463fb78d799d90ba68f79f48e0e"
 dependencies = [
  "bech32",
  "bitcoin_hashes",
@@ -121,7 +131,7 @@ name = "btctipserver"
 version = "0.1.0"
 dependencies = [
  "bdk",
- "bdk-macros",
+ "bdk-macros 0.2.0",
  "dirs-next",
  "env_logger",
  "log 0.4.14",
@@ -151,12 +161,6 @@ dependencies = [
  "byteorder",
  "iovec",
 ]
-
-[[package]]
-name = "bytes"
-version = "0.5.6"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "0e4cec68f03f32e44924783795810fa50a7035d8c8ebe78580ad7e6c703fba38"
 
 [[package]]
 name = "cc"
@@ -241,9 +245,9 @@ dependencies = [
 
 [[package]]
 name = "electrum-client"
-version = "0.5.0-beta.1"
+version = "0.7.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "aedfb48f66ab17ba3b2c69f8ff32f68d8b5dbc7839c0ca4e94237b835ca608dd"
+checksum = "4cab4d90cc575a7daab4cfed9e315912a88071bc47462e6be57516a2f01ccc89"
 dependencies = [
  "bitcoin",
  "log 0.4.14",
@@ -341,7 +345,7 @@ version = "0.1.21"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "d6ccf5ede3a895d8856620237b2f02972c1bbc78d2965ad7fe8838d4a0ed41f0"
 dependencies = [
- "bytes 0.4.12",
+ "bytes",
  "fnv",
  "itoa",
 ]
@@ -447,9 +451,9 @@ dependencies = [
 
 [[package]]
 name = "miniscript"
-version = "4.0.3"
+version = "5.1.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "74ff4ece4ff5498718a232e92d53273903609c739052f5edf2a1a42c59586348"
+checksum = "71f455be59a359d50370c4f587afbc5739c862e684c5afecae80ab93e7474b4e"
 dependencies = [
  "bitcoin",
 ]
@@ -507,9 +511,9 @@ dependencies = [
 
 [[package]]
 name = "pin-project-lite"
-version = "0.1.11"
+version = "0.2.6"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "c917123afa01924fc84bb20c4c03f004d9c38e5127e3c039bbf7f4b9c76a2f6b"
+checksum = "dc0e1f259c92177c30a4c9d177246edd0a3568b25756a977d0632cf8fa37e905"
 
 [[package]]
 name = "ppv-lite86"
@@ -681,9 +685,9 @@ dependencies = [
 
 [[package]]
 name = "secp256k1"
-version = "0.19.0"
+version = "0.20.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "c6179428c22c73ac0fbb7b5579a56353ce78ba29759b3b8575183336ea74cdfb"
+checksum = "733b114f058f260c0af7591434eef4272ae1a8ec2751766d3cb89c6df8d5e450"
 dependencies = [
  "secp256k1-sys",
  "serde",
@@ -691,9 +695,9 @@ dependencies = [
 
 [[package]]
 name = "secp256k1-sys"
-version = "0.3.0"
+version = "0.4.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "11553d210db090930f4432bea123b31f70bbf693ace14504ea2a35e796c28dd2"
+checksum = "67e4b6455ee49f5901c8985b88f98fb0a0e1d90a6661f5a03f4888bd987dad29"
 dependencies = [
  "cc",
 ]
@@ -742,12 +746,6 @@ dependencies = [
  "scoped_threadpool",
  "time",
 ]
-
-[[package]]
-name = "slab"
-version = "0.4.2"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "c111b5bd5695e56cffe5129854aa230b39c93a305372fdbb2668ca2394eea9f8"
 
 [[package]]
 name = "sled"
@@ -830,13 +828,12 @@ dependencies = [
 
 [[package]]
 name = "tokio"
-version = "0.2.25"
+version = "1.4.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "6703a273949a90131b290be1fe7b039d0fc884aa1935860dfcbe056f28cd8092"
+checksum = "134af885d758d645f0f0505c9a8b3f9bf8a348fd822e112ab5248138348f1722"
 dependencies = [
- "bytes 0.5.6",
+ "autocfg",
  "pin-project-lite",
- "slab",
 ]
 
 [[package]]
