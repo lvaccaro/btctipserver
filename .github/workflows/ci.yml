@@ -29,3 +29,20 @@ jobs:
         run: cargo build
       - name: Clippy
         run: cargo clippy
+
+  fmt:
+    name: Rust fmt
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v2
+      - name: Set default toolchain
+        run: rustup default 1.50.0 # STABLE
+      - name: Set profile
+        run: rustup set profile minimal
+      - name: Add clippy
+        run: rustup component add rustfmt
+      - name: Update toolchain
+        run: rustup update
+      - name: Check fmt
+        run: cargo fmt --all -- --check
