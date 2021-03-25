@@ -10,6 +10,7 @@ pub struct Config {
     pub wallet: String,
     pub electrum: String,
     pub host: String,
+    pub port: String,
 }
 
 pub fn read_config() -> Result<Config, Error> {
@@ -35,6 +36,7 @@ pub fn read_config() -> Result<Config, Error> {
         .ok_or_else(|| Error::MissingParameter("electrum".to_string()))?
         .to_string();
     let host = section_bdk.get("host").unwrap_or("0.0.0.0").to_string();
+    let port = section_bdk.get("port").unwrap_or("8080").to_string();
 
     let network = Network::from_str(
         section_bdk
@@ -50,5 +52,6 @@ pub fn read_config() -> Result<Config, Error> {
         wallet,
         electrum,
         host,
+        port,
     })
 }
