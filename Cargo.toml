@@ -16,6 +16,7 @@ env_logger = "0.8.2"
 serde_json = { version = "^1.0" }
 dirs-next = "2.0.0"
 rust-ini = "0.16"
+structopt = "0.3"
 
 [features]
 default = ["electrum", "bdk/key-value-db"]
