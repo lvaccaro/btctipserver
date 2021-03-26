@@ -4,7 +4,25 @@
   "repository": "https://github.com/lvaccaro/btctipserver",
   "keywords": ["bitcoin", "rust", "payment", "service"],
   "success_url": "/bitcoin",
+  "buildpacks": [
+    {
+      "url": "https://github.com/emk/heroku-buildpack-rust.git"
+    }
+  ],
   "env": {
-    "BUILDPACK_URL": "https://github.com/emk/heroku-buildpack-rust.git"
+    "NETWORK": {
+      "description": "Bitcoin network: bitcoin, testnet, or regtest",
+      "value": "testnet",
+      "required": true
+    },
+    "DESCRIPTOR": {
+      "description": "Wallet output descriptor, keys must be valid for the NETWORK",
+      "required": true
+    },
+    "SERVER_URL": {
+      "description": "Electrum server URL, must be valid for the NETWORK",
+      "value": "ssl://electrum.blockstream.info:60002",
+      "required": true
+    }
   }
 }
