@@ -1,4 +1,4 @@
-use crate::config::Config;
+use crate::config::ConfigOpts;
 use crate::error::Error;
 use bdk::blockchain::{
     log_progress, AnyBlockchain, AnyBlockchainConfig, ConfigurableBlockchain,
@@ -9,17 +9,18 @@ use bdk::Wallet;
 use std::fs;
 use std::path::PathBuf;
 
-pub fn setup_wallet(conf: &Config) -> Result<Wallet<AnyBlockchain, Tree>, Error> {
+pub fn setup_wallet(conf: &ConfigOpts) -> Result<Wallet<AnyBlockchain, Tree>, Error> {
     // setup database
-    let database = sled::open(prepare_home_dir(&conf.datadir).to_str().unwrap())?;
+    let database = sled::open(prepare_home_dir(&conf.data_dir).to_str().unwrap())?;
     let tree = database.open_tree(&conf.wallet)?;
 
     // setup electrum blockchain client
+    let electrum_opts = conf.electrum_opts.clone();
     let electrum_config = AnyBlockchainConfig::Electrum(ElectrumBlockchainConfig {
-        url: conf.electrum.clone(),
-        socks5: None,
-        retry: 3,
-        timeout: Some(2),
+        url: electrum_opts.electrum,
+        socks5: electrum_opts.proxy,
+        retry: electrum_opts.retries,
+        timeout: electrum_opts.timeout,
     });
 
     // create wallet shared by all requests

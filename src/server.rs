@@ -1,4 +1,4 @@
-use crate::config::Config;
+use crate::config::ConfigOpts;
 use bdk::bitcoin::Address;
 use bdk::blockchain::{log_progress, AnyBlockchain};
 use bdk::electrum_client::{Client, ElectrumApi, ListUnspentRes};
@@ -10,7 +10,7 @@ use std::fs;
 use std::str::{from_utf8, FromStr};
 use std::sync::{Arc, Mutex};
 
-pub fn create_server(conf: Config, wallet: Wallet<AnyBlockchain, Tree>) -> Server {
+pub fn create_server(conf: ConfigOpts, wallet: Wallet<AnyBlockchain, Tree>) -> Server {
     let wallet_mutex = Arc::new(Mutex::new(wallet));
     Server::new(move |request, mut response| {
         debug!("Request: {} {}", request.method(), request.uri());
@@ -45,7 +45,7 @@ pub fn create_server(conf: Config, wallet: Wallet<AnyBlockchain, Tree>) -> Serve
                 let height = query.next().unwrap();
                 let h: usize = height.parse::<usize>().unwrap();
 
-                let client = Client::new(&conf.electrum).unwrap();
+                let client = Client::new(&conf.electrum_opts.electrum).unwrap();
                 let list = check_address(&client, &addr, Option::from(h));
                 return match list {
                     Ok(list) => {
@@ -65,7 +65,7 @@ pub fn create_server(conf: Config, wallet: Wallet<AnyBlockchain, Tree>) -> Serve
             }
             (&Method::GET, "/bitcoin/") => {
                 let address = request.uri().query().unwrap(); // TODO handle missing address
-                return match html(&conf.electrum, address) {
+                return match html(&conf.electrum_opts.electrum, address) {
                     Ok(txt) => Ok(response.body(txt.as_bytes().to_vec())?),
                     Err(e) => Ok(response.body(e.to_string().as_bytes().to_vec())?),
                 };
