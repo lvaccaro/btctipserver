@@ -11,7 +11,7 @@
   ],
   "env": {
     "NETWORK": {
-      "description": "Bitcoin network: bitcoin, testnet, or regtest",
+      "description": "Bitcoin network: bitcoin or testnet",
       "value": "testnet",
       "required": true
     },

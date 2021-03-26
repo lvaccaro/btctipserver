@@ -1,8 +1,6 @@
 use bdk::bitcoin::Network;
 use ini::Ini;
 use std::env;
-use std::path::Path;
-use structopt;
 use structopt::StructOpt;
 
 /// Bitcoin tip server configuration options
@@ -71,27 +69,13 @@ pub struct ConfigOpts {
     pub electrum_opts: ElectrumOpts,
 }
 
-impl ConfigOpts {
-    /// Get config values from command line arg, env, or ini file in that order
-    /// of precedence.
-    pub fn from_ini_args<P>(filename: P) -> ConfigOpts
-    where
-        P: AsRef<Path>,
-    {
-        load_ini_to_env(filename);
-        ConfigOpts::from_args()
-    }
-}
-
-fn load_ini_to_env<P: AsRef<Path>>(filename: P) {
+pub(crate) fn load_ini_to_env(ini: Ini) {
     // load config from ini file (if it exists) into process env
-    if let Ok(conf) = Ini::load_from_file(filename) {
-        if let Some(section_bdk) = conf.section(Some("BDK")) {
-            for (k, v) in section_bdk.iter() {
-                // if env var is not already set, set with ini value
-                if env::var_os(k).is_none() {
-                    env::set_var(k.to_uppercase(), v);
-                }
+    if let Some(section_bdk) = ini.section(Some("BDK")) {
+        for (k, v) in section_bdk.iter() {
+            // if env var is not already set, set with ini value
+            if env::var_os(k).is_none() {
+                env::set_var(k.to_uppercase(), v);
             }
         }
     }
@@ -140,31 +124,17 @@ mod test {
     use super::{ConfigOpts, ElectrumOpts};
     use crate::config::load_ini_to_env;
     use bdk::bitcoin::Network;
-    use std::ffi::OsString;
-    use std::path::Path;
+    use ini::Ini;
     use structopt;
     use structopt::StructOpt;
 
-    /// Get config values from string iter, env, or ini file in that order
-    /// of precedence.
-    pub fn from_ini_iter<P, I>(filename: P, iter: I) -> ConfigOpts
-    where
-        P: AsRef<Path>,
-        I: IntoIterator,
-        I::Item: Into<OsString> + Clone,
-    {
-        load_ini_to_env(filename);
-        ConfigOpts::from_iter(iter)
-    }
-
     #[test]
-    fn test_parse_config_opts() {
-        let filename = "nonexistent_config.ini";
+    fn test_config_from_args() {
         let cli_args = vec!["btctipserver", "--network", "bitcoin",
                             "--descriptor", "wpkh(tpubEBr4i6yk5nf5DAaJpsi9N2pPYBeJ7fZ5Z9rmN4977iYLCGco1VyjB9tvvuvYtfZzjD5A8igzgw3HeWeeKFmanHYqksqZXYXGsw5zjnj7KM9/*)",
         ];
 
-        let config_opts = from_ini_iter(filename, &cli_args);
+        let config_opts: ConfigOpts = ConfigOpts::from_iter(&cli_args);
 
         let expected_config_opts = ConfigOpts {
             host: "0.0.0.0".to_string(),
@@ -172,7 +142,7 @@ mod test {
             data_dir: ".bdk-bitcoin".to_string(),
             network: Network::Bitcoin,
             descriptor: "wpkh(tpubEBr4i6yk5nf5DAaJpsi9N2pPYBeJ7fZ5Z9rmN4977iYLCGco1VyjB9tvvuvYtfZzjD5A8igzgw3HeWeeKFmanHYqksqZXYXGsw5zjnj7KM9/*)".parse().unwrap(),
-            wallet: "main".to_string(),
+            wallet: "btctipserver".to_string(),
             electrum_opts: ElectrumOpts {
                 proxy: None,
                 retries: 5,
@@ -185,11 +155,25 @@ mod test {
     }
 
     #[test]
-    fn test_load_config_file() {
-        let filename = "config_test.ini";
+    fn test_config_from_ini_env() {
+        let config = r#"
+            [BDK]
+            datadir = .bdk-bitcoin
+            network = bitcoin
+            wallet = test
+            descriptor = 'wpkh(tpubEBr4i6yk5nf5DAaJpsi9N2pPYBeJ7fZ5Z9rmN4977iYLCGco1VyjB9tvvuvYtfZzjD5A8igzgw3HeWeeKFmanHYqksqZXYXGsw5zjnj7KM9/*)'
+            electrum = 'ssl://electrum.blockstream.info:60003'
+            proxy = 127.0.0.1:9150
+            retries = 5
+            timeout = 2
+        "#;
+
+        let ini = Ini::load_from_str(config).unwrap();
+        load_ini_to_env(ini);
+
         let cli_args = vec!["btctipserver"];
 
-        let config_opts = from_ini_iter(filename, cli_args);
+        let config_opts: ConfigOpts = ConfigOpts::from_iter(&cli_args);
 
         let expected_config_opts = ConfigOpts {
             host: "0.0.0.0".to_string(),

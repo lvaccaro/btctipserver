@@ -27,6 +27,8 @@ changes to the project are needed. If you would like to configure your wallet pa
 2. Press the below button
 3. When prompted enter required configuration values for your node
 
+[![Deploy](https://www.herokucdn.com/deploy/button.svg)](https://heroku.com/deploy)
+
 OR 
 
 #### Configured via .ini file 

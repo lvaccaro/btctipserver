@@ -9,12 +9,17 @@ extern crate log;
 use crate::config::ConfigOpts;
 use crate::server::create_server;
 use crate::wallet::setup_wallet;
+use ini::Ini;
+use structopt::StructOpt;
 
 fn main() {
     env_logger::init();
 
-    // Read configuration file
-    let conf = ConfigOpts::from_ini_args("config.ini");
+    // Read configuration file to env if it exists, ignore otherwise
+    let _ = Ini::load_from_file("config.ini").map(config::load_ini_to_env);
+
+    // Read env and commandline args
+    let conf: ConfigOpts = ConfigOpts::from_args();
 
     // Setup wallet
     let wallet = match setup_wallet(&conf) {
