@@ -31,7 +31,7 @@ OR
 
 #### Configured via .ini file 
 1. Fork the project
-2. Copy `config_default.ini` to `config.ini`
+2. Copy `config_example.ini` to `config.ini`
 3. Copy `app_ini_example.json` to `app.json`
 4. Edit `config.ini` and set configuration values for your node
 4. Press the below button
