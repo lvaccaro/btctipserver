@@ -1,8 +1,8 @@
 mod config;
 mod error;
+mod html;
 mod server;
 mod wallet;
-mod html;
 
 #[macro_use]
 extern crate log;

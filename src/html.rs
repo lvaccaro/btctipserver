@@ -1,5 +1,4 @@
-//use crate::Result;
-use maud::{DOCTYPE, html, Markup};
+use maud::{html, Markup, DOCTYPE};
 use qr_code::QrCode;
 use std::io::Cursor;
 
