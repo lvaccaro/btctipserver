@@ -3,6 +3,7 @@ BTCTipServer
 Another Bitcoin payment service, based on [bdk](https://github.com/bitcoindevkit/bdk) and [electrum](https://github.com/bitcoindevkit/rust-electrum-client).
 
 [![build](https://github.com/lvaccaro/btctipserver/workflows/ci/badge.svg)](https://github.com/lvaccaro/btctipserver/actions)
+[![crates.io](https://img.shields.io/crates/v/btctipserver.svg)](https://crates.io/crates/btctipserver)
 [![MIT license](https://img.shields.io/github/license/lvaccaro/btctipserver)](https://github.com/lvaccaro/btctipserver/blob/master/LICENSE)
 [![bdk](https://raw.githubusercontent.com/bitcoindevkit/bitcoindevkit.org/master/static/badge/bitcoin-dev-kit.svg)](https://github.com/bitcoindevkit/bdk)
 
