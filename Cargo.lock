@@ -62,6 +62,12 @@ dependencies = [
 ]
 
 [[package]]
+name = "base64"
+version = "0.13.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "904dfeac50f3cdaba28fc6f57fdcddb75f49ed61346676a78c4ffe55877802fd"
+
+[[package]]
 name = "bdk"
 version = "0.4.1-dev"
 source = "git+https://github.com/bitcoindevkit/bdk.git?rev=c456a25#c456a252f8c08112d3f98fe3e2427c187b69dbf0"
@@ -136,14 +142,23 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "cf1de2fe8c75bc145a2f577add951f8134889b4795d47466a54a5c846d691693"
 
 [[package]]
+name = "bmp-monochrome"
+version = "1.0.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "20d6cb57b1d1fdfd8776dadae804336b7260e23409f14c46df571ae12bad80c1"
+
+[[package]]
 name = "btctipserver"
 version = "0.1.0"
 dependencies = [
+ "base64 0.13.0",
  "bdk",
  "bdk-macros 0.2.0",
  "dirs-next",
  "env_logger",
  "log 0.4.14",
+ "maud",
+ "qr_code",
  "rust-ini",
  "serde_json",
  "simple-server",
@@ -469,6 +484,35 @@ dependencies = [
 ]
 
 [[package]]
+name = "maud"
+version = "0.22.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "da0784808b0c06f80365c1071048df9b6414a83fc56b8d4b305859e39f5162fa"
+dependencies = [
+ "maud_htmlescape",
+ "maud_macros",
+]
+
+[[package]]
+name = "maud_htmlescape"
+version = "0.17.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "d0fb85bccffc42302ad1e1ed8679f6a39d1317f775a37fbc3f79bdfbe054bfb7"
+
+[[package]]
+name = "maud_macros"
+version = "0.22.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "73a00158abd4671407a3d8bd2c8577e9c7dc8d0b8a8e5523bdaba7d486655b1e"
+dependencies = [
+ "maud_htmlescape",
+ "proc-macro-error",
+ "proc-macro2",
+ "quote",
+ "syn",
+]
+
+[[package]]
 name = "memchr"
 version = "2.3.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -589,6 +633,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "qr_code"
+version = "1.1.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "5520fbcd7da152a449261c5a533a1c7fad044e9e8aa9528cfec3f464786c7926"
+dependencies = [
+ "bmp-monochrome",
+]
+
+[[package]]
 name = "quote"
 version = "1.0.9"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -706,7 +759,7 @@ version = "0.16.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "b25a18b1bf7387f0145e7f8324e700805aade3842dd3db2e74e4cdeb4677c09e"
 dependencies = [
- "base64",
+ "base64 0.10.1",
  "log 0.4.14",
  "ring",
  "sct",

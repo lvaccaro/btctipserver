@@ -2,6 +2,7 @@ mod config;
 mod error;
 mod server;
 mod wallet;
+mod html;
 
 #[macro_use]
 extern crate log;

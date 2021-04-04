@@ -6,9 +6,10 @@ use bdk::sled::Tree;
 use bdk::wallet::AddressIndex::LastUnused;
 use bdk::Wallet;
 use simple_server::{Method, Server, StatusCode};
-use std::fs;
 use std::str::{from_utf8, FromStr};
 use std::sync::{Arc, Mutex};
+
+use crate::html;
 
 pub fn create_server(conf: ConfigOpts, wallet: Wallet<AnyBlockchain, Tree>) -> Server {
     let wallet_mutex = Arc::new(Mutex::new(wallet));
@@ -72,15 +73,20 @@ pub fn create_server(conf: ConfigOpts, wallet: Wallet<AnyBlockchain, Tree>) -> S
             }
             (&Method::GET, "/bitcoin") => {
                 let address = last_unused_address(&*wallet).unwrap();
-                return match redirect(address) {
+                let link = format!("/bitcoin/?{}", address);
+                let redirect = html::redirect(link.as_str());
+                return match redirect {
                     Ok(txt) => Ok(response.body(txt.as_bytes().to_vec())?),
                     Err(e) => Ok(response.body(e.to_string().as_bytes().to_vec())?),
                 };
             }
             (&Method::GET, "/") => {
                 let link = "/bitcoin";
-                let redirect = format!("<head><meta name='robots' content='noindex'><meta http-equiv=\"Refresh\" content=\"0; URL={}\"></head>", link);
-                Ok(response.body(redirect.as_bytes().to_vec())?)
+                let redirect = html::redirect(link);
+                return match redirect {
+                    Ok(txt) => Ok(response.body(txt.as_bytes().to_vec())?),
+                    Err(e) => Ok(response.body(e.to_string().as_bytes().to_vec())?),
+                };
             }
             (_, _) => {
                 response.status(StatusCode::NOT_FOUND);
@@ -127,19 +133,5 @@ fn html(electrum: &str, address: &str) -> Result<String, std::io::Error> {
             format!("Received {} sat {}", unspent.value, location)
         }
     };
-
-    let template = fs::read_to_string("assets/index.html").unwrap();
-    let link = format!("/bitcoin/?{}", address);
-    let txt = template
-        .replace("{address}", &address)
-        .replace("{status}", &status)
-        .replace("{refresh-link}", &link)
-        .replace("{refresh-timeout}", "10");
-    Ok(txt)
-}
-
-fn redirect(address: Address) -> Result<String, std::io::Error> {
-    let link = format!("/bitcoin/?{}", address);
-    let html = format!("<head><meta name='robots' content='noindex'><meta http-equiv=\"Refresh\" content=\"0; URL={}\"></head>", link);
-    Ok(html)
+    html::page(address, status.as_str())
 }

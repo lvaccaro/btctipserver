@@ -17,6 +17,9 @@ serde_json = { version = "^1.0" }
 dirs-next = "2.0.0"
 rust-ini = "0.16"
 structopt = "0.3"
+qr_code = { version="1.0.0", features = ["bmp"] }
+maud = "0.22.1"
+base64 = "0.13.0"
 
 [features]
 default = ["electrum", "bdk/key-value-db"]
