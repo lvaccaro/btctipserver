@@ -66,7 +66,11 @@ pub fn create_server(conf: ConfigOpts, wallet: Wallet<AnyBlockchain, Tree>) -> S
             }
             (&Method::GET, "/bitcoin/") => {
                 let address = request.uri().query().unwrap(); // TODO handle missing address
-                return match html(&conf.network.to_string(), &conf.electrum_opts.electrum, address) {
+                return match html(
+                    &conf.network.to_string(),
+                    &conf.electrum_opts.electrum,
+                    address,
+                ) {
                     Ok(txt) => Ok(response.body(txt.as_bytes().to_vec())?),
                     Err(e) => Ok(response.body(e.to_string().as_bytes().to_vec())?),
                 };
