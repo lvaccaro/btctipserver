@@ -17,8 +17,13 @@ fn inner_header() -> Markup {
 }
 
 fn inner_network(network: &str) -> Markup {
+    let network = network.to_lowercase();
     let partial = html! {
-        div class="d-flex align-items-center p-3 my-3 text-white-50 bg-orange rounded box-shadow" {
+        div.d-flex.align-items-center."text-white-50".rounded.box-shadow."p-3"."my-3"
+        .bg-orange[network == "bitcoin"]
+        .bg-purple[network == "testnet"]
+        .bg-blue[network == "regtest"]
+        .bg-red[network == "signet"] {
             div class="lh-100" {
                 h6 class="mb-0 text-white lh-100" { (network) }
             }
@@ -75,7 +80,7 @@ fn create_bmp_base64_qr(message: &str) -> Result<String, std::io::Error> {
     Ok(to_data_url(cursor.into_inner(), "image/bmp"))
 }
 
-pub fn page(address: &str, status: &str) -> Result<String, std::io::Error> {
+pub fn page(network: &str, address: &str, status: &str) -> Result<String, std::io::Error> {
     let meta_http_content = format!("{}; URL=/bitcoin/?{}", 10, address);
     let address_link = format!("bitcoin://{}", address);
     let qr = create_bmp_base64_qr(address)?;
@@ -95,7 +100,7 @@ pub fn page(address: &str, status: &str) -> Result<String, std::io::Error> {
             body {
                 (inner_header())
                 main role="main" class="container" {
-                    (inner_network("Bitcoin"))
+                    (inner_network(network))
                     div class="my-3 p-3 bg-white rounded box-shadow" {
                         (inner_address(address))
                         (inner_status(status))

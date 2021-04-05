@@ -66,7 +66,7 @@ pub fn create_server(conf: ConfigOpts, wallet: Wallet<AnyBlockchain, Tree>) -> S
             }
             (&Method::GET, "/bitcoin/") => {
                 let address = request.uri().query().unwrap(); // TODO handle missing address
-                return match html(&conf.electrum_opts.electrum, address) {
+                return match html(&conf.network.to_string(), &conf.electrum_opts.electrum, address) {
                     Ok(txt) => Ok(response.body(txt.as_bytes().to_vec())?),
                     Err(e) => Ok(response.body(e.to_string().as_bytes().to_vec())?),
                 };
@@ -118,7 +118,7 @@ fn check_address(
     Ok(array)
 }
 
-fn html(electrum: &str, address: &str) -> Result<String, std::io::Error> {
+fn html(network: &str, electrum: &str, address: &str) -> Result<String, std::io::Error> {
     let client = Client::new(electrum).unwrap();
     let list = check_address(&client, &address, Option::from(0)).unwrap();
 
@@ -133,5 +133,5 @@ fn html(electrum: &str, address: &str) -> Result<String, std::io::Error> {
             format!("Received {} sat {}", unspent.value, location)
         }
     };
-    html::page(address, status.as_str())
+    html::page(network, address, status.as_str())
 }

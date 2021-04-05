@@ -70,6 +70,9 @@
         .text-white-50 { color: rgba(255, 255, 255, .5); }
 
         .bg-orange { background-color: var(--orange); }
+        .bg-purple { background-color: var(--purple); }
+        .bg-blue { background-color: var(--blue); }
+        .bg-red { background-color: var(--red); }
 
         .border-bottom { border-bottom: 1px solid #e5e5e5; }
 
