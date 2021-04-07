@@ -73,7 +73,7 @@ fn create_bmp_base64_qr(message: &str) -> Result<String, std::io::Error> {
     // The `.mul(3)` with pixelated rescale shouldn't be needed, however, some printers doesn't
     // recognize it resulting in a blurry image, starting with a bigger image mostly prevents the
     // issue at the cost of a bigger image size.
-    let bmp = qr.to_bmp().mul(3).unwrap();
+    let bmp = qr.to_bmp().mul(4).unwrap();
 
     let mut cursor = Cursor::new(vec![]);
     bmp.write(&mut cursor).unwrap();
@@ -97,7 +97,7 @@ pub fn not_found() -> String {
     html.into_string()
 }
 
-pub fn page(network: &str, address: &str, status: &str) -> Result<String, std::io::Error> {
+pub fn page(network: &str, address: &str, status: &str) -> Result<String, simple_server::Error> {
     let meta_http_content = format!("{}; URL=/bitcoin/?{}", 10, address);
     let address_link = format!("bitcoin://{}", address);
     let qr = create_bmp_base64_qr(address)?;

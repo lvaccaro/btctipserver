@@ -11,19 +11,30 @@ use std::sync::{Arc, Mutex};
 
 use crate::html;
 use crate::html::not_found;
+use std::io;
+
+/// Returns a generic simple_server::Error, used to catch errors to prevent tearing
+/// down the server with a simple request, should be removed in favor of specific errors
+fn gen_err() -> simple_server::Error {
+    simple_server::Error::Io(io::Error::new(io::ErrorKind::Other, "oh no!"))
+}
 
 pub fn create_server(conf: ConfigOpts, wallet: Wallet<AnyBlockchain, Tree>) -> Server {
     let wallet_mutex = Arc::new(Mutex::new(wallet));
+
     Server::new(move |request, mut response| {
         debug!("Request: {} {}", request.method(), request.uri());
-        debug!("Body: {}", from_utf8(request.body()).unwrap());
+        debug!(
+            "Body: {}",
+            from_utf8(request.body()).map_err(|_| gen_err())?
+        );
         debug!("Headers:");
         for (key, value) in request.headers() {
-            debug!("{}: {}", key, value.to_str().unwrap());
+            debug!("{}: {}", key, value.to_str().unwrap_or("can't map to str"));
         }
 
         // unlock wallet mutex for this request
-        let wallet = wallet_mutex.lock().unwrap();
+        let wallet = wallet_mutex.lock().map_err(|_| gen_err())?;
 
         match (request.method(), request.uri().path()) {
             (&Method::GET, "/bitcoin/api/last_unused") => {
@@ -43,11 +54,11 @@ pub fn create_server(conf: ConfigOpts, wallet: Wallet<AnyBlockchain, Tree>) -> S
             (&Method::GET, "/bitcoin/api/check") => {
                 // curl 127.0.0.1:7878/bitcoin/api/check?tb1qm4safqvzu28jvjz5juta7qutfaqst7nsfsumuz:0
                 let mut query = request.uri().query().unwrap_or("").split(':');
-                let addr = query.next().unwrap();
-                let height = query.next().unwrap();
-                let h: usize = height.parse::<usize>().unwrap();
+                let addr = query.next().ok_or_else(|| gen_err())?;
+                let height = query.next().ok_or_else(|| gen_err())?;
+                let h: usize = height.parse::<usize>().map_err(|_| gen_err())?;
 
-                let client = Client::new(&conf.electrum_opts.electrum).unwrap();
+                let client = Client::new(&conf.electrum_opts.electrum).map_err(|_| gen_err())?;
                 let list = check_address(&client, &addr, Option::from(h));
                 match list {
                     Ok(list) => {
@@ -62,7 +73,7 @@ pub fn create_server(conf: ConfigOpts, wallet: Wallet<AnyBlockchain, Tree>) -> S
                         }
                         Ok(response.body("".as_bytes().to_vec())?)
                     }
-                    Err(e) => Ok(response.body(e.to_string().as_bytes().to_vec())?),
+                    Err(e) => Ok(response.body(format!("{:?}", e).as_bytes().to_vec())?),
                 }
             }
             (&Method::GET, "/bitcoin/") => {
@@ -76,11 +87,11 @@ pub fn create_server(conf: ConfigOpts, wallet: Wallet<AnyBlockchain, Tree>) -> S
                     address,
                 ) {
                     Ok(txt) => Ok(response.body(txt.as_bytes().to_vec())?),
-                    Err(e) => Ok(response.body(e.to_string().as_bytes().to_vec())?),
+                    Err(e) => Ok(response.body(format!("{:?}", e).as_bytes().to_vec())?),
                 }
             }
             (&Method::GET, "/bitcoin") => {
-                let address = last_unused_address(&*wallet).unwrap();
+                let address = last_unused_address(&*wallet).map_err(|_| gen_err())?;
                 let link = format!("/bitcoin/?{}", address);
                 let redirect = html::redirect(link.as_str());
                 match redirect {
@@ -113,10 +124,14 @@ fn check_address(
     client: &Client,
     addr: &str,
     from_height: Option<usize>,
-) -> Result<Vec<ListUnspentRes>, bdk::Error> {
-    let monitor_script = Address::from_str(addr).unwrap().script_pubkey();
+) -> Result<Vec<ListUnspentRes>, simple_server::Error> {
+    let monitor_script = Address::from_str(addr)
+        .map_err(|_| gen_err())?
+        .script_pubkey();
 
-    let unspents = client.script_list_unspent(&monitor_script).unwrap();
+    let unspents = client
+        .script_list_unspent(&monitor_script)
+        .map_err(|_| gen_err())?;
 
     let array = unspents
         .into_iter()
@@ -126,12 +141,12 @@ fn check_address(
     Ok(array)
 }
 
-fn html(network: &str, electrum: &str, address: &str) -> Result<String, std::io::Error> {
-    let client = Client::new(electrum).unwrap();
-    let list = check_address(&client, &address, Option::from(0)).unwrap();
+fn html(network: &str, electrum: &str, address: &str) -> Result<String, simple_server::Error> {
+    let client = Client::new(electrum).map_err(|_| gen_err())?;
+    let list = check_address(&client, &address, Option::from(0)).map_err(|_| gen_err())?;
 
     let status = match list.last() {
-        None => "No onchain tx found yet".to_string(),
+        None => "No tx found yet".to_string(),
         Some(unspent) => {
             let location = match unspent.height {
                 0 => "in mempool".to_string(),
