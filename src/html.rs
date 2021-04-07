@@ -80,6 +80,23 @@ fn create_bmp_base64_qr(message: &str) -> Result<String, std::io::Error> {
     Ok(to_data_url(cursor.into_inner(), "image/bmp"))
 }
 
+pub fn not_found() -> String {
+    let html = html! {
+        (DOCTYPE)
+        html {
+            body {
+                h1 {
+                    "404"
+                }
+                p {
+                    "Not found!"
+                }
+            }
+        }
+    };
+    html.into_string()
+}
+
 pub fn page(network: &str, address: &str, status: &str) -> Result<String, std::io::Error> {
     let meta_http_content = format!("{}; URL=/bitcoin/?{}", 10, address);
     let address_link = format!("bitcoin://{}", address);
