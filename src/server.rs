@@ -136,10 +136,13 @@ fn is_my_address(
     wallet: &Wallet<AnyBlockchain, Tree>,
     addr: &str,
 ) -> Result<bool, simple_server::Error> {
-    wallet.sync(log_progress(), None).map_err(|_| gen_err())?;
     let script = Address::from_str(addr)
         .map_err(|_| gen_err())?
         .script_pubkey();
+    if wallet.is_mine(&script).map_err(|_| gen_err())? {
+        return Ok(true);
+    }
+    wallet.sync(log_progress(), None).map_err(|_| gen_err())?;
     wallet.is_mine(&script).map_err(|_| gen_err())
 }
 
