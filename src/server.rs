@@ -81,6 +81,16 @@ pub fn create_server(conf: ConfigOpts, wallet: Wallet<AnyBlockchain, Tree>) -> S
                     Some(address) => address,
                     None => return Ok(response.body(not_found().as_bytes().to_vec())?),
                 };
+                match is_mine_address(&*wallet, address) {
+                    Ok(mine) => {
+                        if !mine {
+                            return Ok(response.body(
+                                format!("Not mine address {}", address).as_bytes().to_vec(),
+                            )?);
+                        }
+                    }
+                    Err(e) => return Ok(response.body(format!("{:?}", e).as_bytes().to_vec())?),
+                };
                 match html(
                     &conf.network.to_string(),
                     &conf.electrum_opts.electrum,
@@ -118,6 +128,17 @@ pub fn create_server(conf: ConfigOpts, wallet: Wallet<AnyBlockchain, Tree>) -> S
 fn last_unused_address(wallet: &Wallet<AnyBlockchain, Tree>) -> Result<Address, bdk::Error> {
     wallet.sync(log_progress(), None)?;
     wallet.get_address(LastUnused)
+}
+
+fn is_mine_address(
+    wallet: &Wallet<AnyBlockchain, Tree>,
+    addr: &str,
+) -> Result<bool, simple_server::Error> {
+    wallet.sync(log_progress(), None).map_err(|_| gen_err())?;
+    let script = Address::from_str(addr)
+        .map_err(|_| gen_err())?
+        .script_pubkey();
+    wallet.is_mine(&script).map_err(|_| gen_err())
 }
 
 fn check_address(
