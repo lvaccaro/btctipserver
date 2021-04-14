@@ -1,4 +1,5 @@
 use maud::{html, Markup, DOCTYPE};
+use qr_code::bmp_monochrome::BmpError;
 use qr_code::QrCode;
 use std::io::Cursor;
 
@@ -67,21 +68,24 @@ pub fn to_data_url<T: AsRef<[u8]>>(input: T, content_type: &str) -> String {
 }
 
 /// Creates QR containing `message`
-pub fn create_bmp_qr(message: &str) -> Result<Vec<u8>, std::io::Error> {
+pub fn create_bmp_qr(message: &str) -> Result<Vec<u8>, BmpError> {
     let qr = QrCode::new(message.as_bytes()).unwrap();
 
     // The `.mul(3)` with pixelated rescale shouldn't be needed, however, some printers doesn't
     // recognize it resulting in a blurry image, starting with a bigger image mostly prevents the
     // issue at the cost of a bigger image size.
-    let bmp = qr.to_bmp().mul(4).unwrap();
+    let bmp = qr.to_bmp().mul(4)?.add_white_border(16)?;
 
     let mut cursor = Cursor::new(vec![]);
-    bmp.write(&mut cursor).unwrap();
+    bmp.write(&mut cursor)?;
     Ok(cursor.into_inner())
 }
 
+fn gen_err() -> simple_server::Error {
+    simple_server::Error::Io(std::io::Error::new(std::io::ErrorKind::Other, "bitmap"))
+}
 /// Creates QR containing `message` and encode it in data url
-fn create_bmp_base64_qr(message: &str) -> Result<String, std::io::Error> {
+fn create_bmp_base64_qr(message: &str) -> Result<String, BmpError> {
     let bitmap = create_bmp_qr(message)?;
     Ok(to_data_url(bitmap, "image/bmp"))
 }
@@ -106,7 +110,7 @@ pub fn not_found() -> String {
 pub fn page(network: &str, address: &str, status: &str) -> Result<String, simple_server::Error> {
     let meta_http_content = format!("{}; URL=/bitcoin/?{}", 10, address);
     let address_link = format!("bitcoin:{}", address);
-    let qr = create_bmp_base64_qr(address)?;
+    let qr = create_bmp_base64_qr(address).map_err(|_| gen_err())?;
 
     let html = html! {
         (DOCTYPE)

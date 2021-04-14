@@ -42,7 +42,8 @@ pub fn create_server(conf: ConfigOpts, wallet: Wallet<AnyBlockchain, Tree>) -> S
                 match address {
                     Ok(addr) => {
                         info!("last unused addr {}", addr.to_string());
-                        let qr = html::create_bmp_qr(addr.to_string().as_str())?;
+                        let qr = html::create_bmp_qr(addr.to_string().as_str())
+                            .map_err(|_| gen_err())?;
                         response.header("Content-type", "image/bmp");
                         Ok(response.body(qr)?)
                     }
