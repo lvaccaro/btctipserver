@@ -66,8 +66,8 @@ pub fn to_data_url<T: AsRef<[u8]>>(input: T, content_type: &str) -> String {
     format!("data:{};base64,{}", content_type, base64)
 }
 
-/// Creates QR containing `message` and encode it in data url
-fn create_bmp_base64_qr(message: &str) -> Result<String, std::io::Error> {
+/// Creates QR containing `message`
+pub fn create_bmp_qr(message: &str) -> Result<Vec<u8>, std::io::Error> {
     let qr = QrCode::new(message.as_bytes()).unwrap();
 
     // The `.mul(3)` with pixelated rescale shouldn't be needed, however, some printers doesn't
@@ -77,7 +77,13 @@ fn create_bmp_base64_qr(message: &str) -> Result<String, std::io::Error> {
 
     let mut cursor = Cursor::new(vec![]);
     bmp.write(&mut cursor).unwrap();
-    Ok(to_data_url(cursor.into_inner(), "image/bmp"))
+    Ok(cursor.into_inner())
+}
+
+/// Creates QR containing `message` and encode it in data url
+fn create_bmp_base64_qr(message: &str) -> Result<String, std::io::Error> {
+    let bitmap = create_bmp_qr(message)?;
+    Ok(to_data_url(bitmap, "image/bmp"))
 }
 
 pub fn not_found() -> String {
