@@ -4,6 +4,11 @@ version = "0.1.0"
 authors = ["Luca Vaccaro <me@lvaccaro.com>"]
 edition = "2018"
 license = "MIT"
+description = "Bitcoin payment service, based on bdk and electrum."
+homepage = "https://github.com/lvaccaro/btctipserver"
+documentation = "https://docs.rs/btctipserver/"
+keywords = ["bitcoin", "wallet", "payment", "server"]
+readme = "README.md"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 

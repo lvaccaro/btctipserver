@@ -6,6 +6,8 @@ Another Bitcoin payment service, based on [bdk](https://github.com/bitcoindevkit
 [![MIT license](https://img.shields.io/github/license/lvaccaro/btctipserver)](https://github.com/lvaccaro/btctipserver/blob/master/LICENSE)
 [![bdk](https://raw.githubusercontent.com/bitcoindevkit/bitcoindevkit.org/master/static/badge/bitcoin-dev-kit.svg)](https://github.com/bitcoindevkit/bdk)
 
+[![crates.io](https://img.shields.io/crates/v/btctipserver.svg)](https://crates.io/crates/btctipserver)
+
 ### Get it start
 Build and run service (default port is 8080):
 ```
