@@ -105,7 +105,7 @@ pub fn not_found() -> String {
 
 pub fn page(network: &str, address: &str, status: &str) -> Result<String, simple_server::Error> {
     let meta_http_content = format!("{}; URL=/bitcoin/?{}", 10, address);
-    let address_link = format!("bitcoin://{}", address);
+    let address_link = format!("bitcoin:{}", address);
     let qr = create_bmp_base64_qr(address)?;
 
     let html = html! {
