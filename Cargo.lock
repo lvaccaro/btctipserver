@@ -69,11 +69,12 @@ checksum = "904dfeac50f3cdaba28fc6f57fdcddb75f49ed61346676a78c4ffe55877802fd"
 
 [[package]]
 name = "bdk"
-version = "0.4.1-dev"
-source = "git+https://github.com/bitcoindevkit/bdk.git?rev=c456a25#c456a252f8c08112d3f98fe3e2427c187b69dbf0"
+version = "0.6.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "51dcf686dfc6200d641e8619019c027976533b7e2d5c00de2b4182c88287a18b"
 dependencies = [
  "async-trait",
- "bdk-macros 0.3.0",
+ "bdk-macros 0.4.0",
  "bitcoin",
  "electrum-client",
  "js-sys",
@@ -99,9 +100,9 @@ dependencies = [
 
 [[package]]
 name = "bdk-macros"
-version = "0.3.0"
+version = "0.4.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "b96757dbe9c7e0a8f0635c5366464d9c713528e111f47490e96385f70d6a67a6"
+checksum = "b45570b78250774145859a8f85bfdb6e310663fc82640d7e159a44b1386074a2"
 dependencies = [
  "proc-macro2",
  "quote",

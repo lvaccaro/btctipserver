@@ -13,7 +13,7 @@ readme = "README.md"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-bdk = { git = "https://github.com/bitcoindevkit/bdk.git", rev = "c456a25", default-features = false }
+bdk = { version = "0.6.0", default-features = false } 
 bdk-macros = "^0.2"
 simple-server = "0.4.0"
 log = "0.4.0"
