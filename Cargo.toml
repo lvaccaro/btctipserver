@@ -29,3 +29,7 @@ base64 = "0.13.0"
 [features]
 default = ["electrum", "bdk/key-value-db"]
 electrum = ["bdk/electrum"]
+
+[[bin]]
+name = "btctipserver"
+path = "src/main.rs"
