@@ -150,7 +150,7 @@ checksum = "20d6cb57b1d1fdfd8776dadae804336b7260e23409f14c46df571ae12bad80c1"
 
 [[package]]
 name = "btctipserver"
-version = "0.1.0"
+version = "0.1.1-dev"
 dependencies = [
  "base64 0.13.0",
  "bdk",
