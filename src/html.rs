@@ -130,7 +130,7 @@ pub fn page(
     let address_link = bitcoin_uri.as_str().map_err(|_| gen_err())?;
     let meta_http_content = format!("{}; URL=/bitcoin/{}", 10, address_link);
     let qr = create_bmp_base64_qr(address_link.as_str()).map_err(|_| gen_err())?;
-    let address = bitcoin_uri.address.as_str();
+    let address = bitcoin_uri.address.to_string();
 
     let html = html! {
         (DOCTYPE)
@@ -149,10 +149,10 @@ pub fn page(
                 main role="main" class="container" {
                     (inner_network(network))
                     div class="my-3 p-3 bg-white rounded box-shadow" {
-                        (inner_address(address))
+                        (inner_address(address.as_str()))
                         (inner_status(status))
                         @if let Some(amount) = &bitcoin_uri.amount {
-                            (inner_section("Amount", amount))
+                            (inner_section("Amount", amount.to_string().as_str()))
                         }
                         @if let Some(label) = &bitcoin_uri.label {
                             (inner_section("Label", label))

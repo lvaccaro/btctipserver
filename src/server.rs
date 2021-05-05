@@ -117,13 +117,16 @@ pub fn create_server(conf: ConfigOpts, wallet: Wallet<AnyBlockchain, Tree>) -> S
                         Ok(uri) => uri,
                         Err(e) => return Ok(response.body(format!("{:?}", e).as_bytes().to_vec())?),
                     };
-                    match is_my_address(&*wallet, bitcoin_uri.address.as_str()) {
+                    match is_my_address(&*wallet, &bitcoin_uri.address) {
                         Ok(mine) => {
                             if !mine {
                                 return Ok(response.body(
-                                    format!("Address {} is not mine", bitcoin_uri.address)
-                                        .as_bytes()
-                                        .to_vec(),
+                                    format!(
+                                        "Address {} is not mine",
+                                        bitcoin_uri.address.to_string()
+                                    )
+                                    .as_bytes()
+                                    .to_vec(),
                                 )?);
                             }
                         }
@@ -153,11 +156,9 @@ fn last_unused_address(wallet: &Wallet<AnyBlockchain, Tree>) -> Result<Address, 
 
 fn is_my_address(
     wallet: &Wallet<AnyBlockchain, Tree>,
-    addr: &str,
+    addr: &Address,
 ) -> Result<bool, simple_server::Error> {
-    let script = Address::from_str(addr)
-        .map_err(|_| gen_err())?
-        .script_pubkey();
+    let script = addr.script_pubkey();
     if wallet.is_mine(&script).map_err(|_| gen_err())? {
         return Ok(true);
     }
@@ -192,8 +193,8 @@ fn html(
     bitcoin_uri: &Bip21,
 ) -> Result<String, simple_server::Error> {
     let client = Client::new(electrum).map_err(|_| gen_err())?;
-    let address = bitcoin_uri.address.as_str();
-    let list = check_address(&client, &address, Option::from(0)).map_err(|_| gen_err())?;
+    let address = bitcoin_uri.address.to_string();
+    let list = check_address(&client, &address.as_str(), Option::from(0)).map_err(|_| gen_err())?;
 
     let status = match list.last() {
         None => "No tx found yet".to_string(),
