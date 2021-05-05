@@ -9,6 +9,7 @@ use simple_server::{Method, Server, StatusCode};
 use std::str::{from_utf8, FromStr};
 use std::sync::{Arc, Mutex};
 
+use crate::bip21::Bip21;
 use crate::html;
 use crate::html::not_found;
 use std::io;
@@ -89,35 +90,11 @@ pub fn create_server(conf: ConfigOpts, wallet: Wallet<AnyBlockchain, Tree>) -> S
                     Err(e) => Ok(response.body(format!("{:?}", e).as_bytes().to_vec())?),
                 }
             }
-            (&Method::GET, "/bitcoin/") => {
-                let address = match request.uri().query() {
-                    Some(address) => address,
-                    None => return Ok(response.body(not_found().as_bytes().to_vec())?),
-                };
-                match is_my_address(&*wallet, address) {
-                    Ok(mine) => {
-                        if !mine {
-                            return Ok(response.body(
-                                format!("Address {} is not mine", address)
-                                    .as_bytes()
-                                    .to_vec(),
-                            )?);
-                        }
-                    }
-                    Err(e) => return Ok(response.body(format!("{:?}", e).as_bytes().to_vec())?),
-                };
-                match html(
-                    &conf.network.to_string(),
-                    &conf.electrum_opts.electrum,
-                    address,
-                ) {
-                    Ok(txt) => Ok(response.body(txt.as_bytes().to_vec())?),
-                    Err(e) => Ok(response.body(format!("{:?}", e).as_bytes().to_vec())?),
-                }
-            }
             (&Method::GET, "/bitcoin") => {
+                // example: /bitcoin?amount=<decimal>&label=<text>
                 let address = last_unused_address(&*wallet).map_err(|_| gen_err())?;
-                let link = format!("/bitcoin/?{}", address);
+                let query = request.uri().query().unwrap_or("");
+                let link = format!("/bitcoin/bitcoin:{}?{}", address, query);
                 let redirect = html::redirect(link.as_str());
                 match redirect {
                     Ok(txt) => Ok(response.body(txt.as_bytes().to_vec())?),
@@ -133,6 +110,35 @@ pub fn create_server(conf: ConfigOpts, wallet: Wallet<AnyBlockchain, Tree>) -> S
                 }
             }
             (_, _) => {
+                if request.uri().path().starts_with("/bitcoin/bitcoin:") {
+                    // example: /bitcoin:<address>?amount=<decimal>&label=<text>
+                    let bitcoin_url = &request.uri().to_string()["/bitcoin/".len()..];
+                    let bitcoin_uri = match Bip21::parse(bitcoin_url) {
+                        Ok(uri) => uri,
+                        Err(e) => return Ok(response.body(format!("{:?}", e).as_bytes().to_vec())?),
+                    };
+                    match is_my_address(&*wallet, bitcoin_uri.address.as_str()) {
+                        Ok(mine) => {
+                            if !mine {
+                                return Ok(response.body(
+                                    format!("Address {} is not mine", bitcoin_uri.address)
+                                        .as_bytes()
+                                        .to_vec(),
+                                )?);
+                            }
+                        }
+                        Err(e) => return Ok(response.body(format!("{:?}", e).as_bytes().to_vec())?),
+                    };
+                    return match html(
+                        &conf.network.to_string(),
+                        &conf.electrum_opts.electrum,
+                        &bitcoin_uri,
+                    ) {
+                        Ok(txt) => Ok(response.body(txt.as_bytes().to_vec())?),
+                        Err(e) => Ok(response.body(format!("{:?}", e).as_bytes().to_vec())?),
+                    };
+                }
+
                 response.status(StatusCode::NOT_FOUND);
                 Ok(response.body(not_found().as_bytes().to_vec())?)
             }
@@ -180,8 +186,13 @@ fn check_address(
     Ok(array)
 }
 
-fn html(network: &str, electrum: &str, address: &str) -> Result<String, simple_server::Error> {
+fn html(
+    network: &str,
+    electrum: &str,
+    bitcoin_uri: &Bip21,
+) -> Result<String, simple_server::Error> {
     let client = Client::new(electrum).map_err(|_| gen_err())?;
+    let address = bitcoin_uri.address.as_str();
     let list = check_address(&client, &address, Option::from(0)).map_err(|_| gen_err())?;
 
     let status = match list.last() {
@@ -195,5 +206,5 @@ fn html(network: &str, electrum: &str, address: &str) -> Result<String, simple_s
             format!("Received {} sat {}", unspent.value, location)
         }
     };
-    html::page(network, address, status.as_str())
+    html::page(network, status.as_str(), bitcoin_uri)
 }

@@ -1,3 +1,4 @@
+use crate::bip21::Bip21;
 use maud::{html, Markup, DOCTYPE};
 use qr_code::bmp_monochrome::BmpError;
 use qr_code::QrCode;
@@ -41,6 +42,20 @@ fn inner_address(address: &str) -> Markup {
                     "Address"
                 }
                 span { (address) }
+            }
+        }
+    };
+    partial
+}
+
+fn inner_section(title: &str, subtitle: &str) -> Markup {
+    let partial = html! {
+        div class="media text-muted pt-3" {
+            p class="media-body pb-3 mb-0 small lh-125 border-bottom border-gray" {
+                strong class="d-block text-gray-dark" {
+                    (title)
+                }
+                span { (subtitle) }
             }
         }
     };
@@ -107,10 +122,15 @@ pub fn not_found() -> String {
     html.into_string()
 }
 
-pub fn page(network: &str, address: &str, status: &str) -> Result<String, simple_server::Error> {
-    let meta_http_content = format!("{}; URL=/bitcoin/?{}", 10, address);
-    let address_link = format!("bitcoin:{}", address);
-    let qr = create_bmp_base64_qr(address).map_err(|_| gen_err())?;
+pub fn page(
+    network: &str,
+    status: &str,
+    bitcoin_uri: &Bip21,
+) -> Result<String, simple_server::Error> {
+    let address_link = bitcoin_uri.as_str().map_err(|_| gen_err())?;
+    let meta_http_content = format!("{}; URL=/bitcoin/{}", 10, address_link);
+    let qr = create_bmp_base64_qr(address_link.as_str()).map_err(|_| gen_err())?;
+    let address = bitcoin_uri.address.as_str();
 
     let html = html! {
         (DOCTYPE)
@@ -131,6 +151,15 @@ pub fn page(network: &str, address: &str, status: &str) -> Result<String, simple
                     div class="my-3 p-3 bg-white rounded box-shadow" {
                         (inner_address(address))
                         (inner_status(status))
+                        @if let Some(amount) = &bitcoin_uri.amount {
+                            (inner_section("Amount", amount))
+                        }
+                        @if let Some(label) = &bitcoin_uri.label {
+                            (inner_section("Label", label))
+                        }
+                        @if let Some(message) = &bitcoin_uri.message {
+                            (inner_section("Message", message))
+                        }
                         small class="d-block text-right mt-3" {
                             a href=(address_link) { "Open in wallet" }
                         }

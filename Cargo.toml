@@ -25,6 +25,8 @@ structopt = "0.3"
 qr_code = { version="1.0.0", features = ["bmp"] }
 maud = "0.22.1"
 base64 = "0.13.0"
+url = { version = "2", features = ["serde"] }
+percent-encoding = "2.1.0"
 
 [features]
 default = ["electrum", "bdk/key-value-db"]
