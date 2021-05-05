@@ -1,3 +1,4 @@
+mod bip21;
 mod config;
 mod error;
 mod html;
