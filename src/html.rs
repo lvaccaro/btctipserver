@@ -1,7 +1,9 @@
+use bdk::bitcoin::Address;
 use maud::{html, Markup, DOCTYPE};
 use qr_code::bmp_monochrome::BmpError;
 use qr_code::QrCode;
 use std::io::Cursor;
+use std::str::FromStr;
 
 const CSS: &str = include_str!("../assets/index.css");
 
@@ -110,7 +112,10 @@ pub fn not_found() -> String {
 pub fn page(network: &str, address: &str, status: &str) -> Result<String, simple_server::Error> {
     let meta_http_content = format!("{}; URL=/bitcoin/?{}", 10, address);
     let address_link = format!("bitcoin:{}", address);
-    let qr = create_bmp_base64_qr(address).map_err(|_| gen_err())?;
+    let address_qr = Address::from_str(address)
+        .map_err(|_| gen_err())?
+        .to_qr_uri();
+    let qr = create_bmp_base64_qr(&address_qr).map_err(|_| gen_err())?;
 
     let html = html! {
         (DOCTYPE)
