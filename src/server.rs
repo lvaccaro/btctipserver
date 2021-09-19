@@ -1,6 +1,6 @@
 use crate::config::ConfigOpts;
 use simple_server::{Method, Server, StatusCode};
-use std::str::{from_utf8};
+use std::str::from_utf8;
 use std::sync::{Arc, Mutex};
 
 use crate::btcwallet::BTCWallet;
@@ -98,11 +98,7 @@ pub fn create_server(conf: ConfigOpts, btcwallet: BTCWallet) -> Server {
                     }
                     Err(e) => return Ok(response.body(format!("{:?}", e).as_bytes().to_vec())?),
                 };
-                match html(
-                    &conf.network.to_string(),
-                    &btcwallet,
-                    address,
-                ) {
+                match html(&conf.network.to_string(), &btcwallet, address) {
                     Ok(txt) => Ok(response.body(txt.as_bytes().to_vec())?),
                     Err(e) => Ok(response.body(format!("{:?}", e).as_bytes().to_vec())?),
                 }
@@ -132,8 +128,14 @@ pub fn create_server(conf: ConfigOpts, btcwallet: BTCWallet) -> Server {
     })
 }
 
-fn html(network: &str, btcwallet: &BTCWallet, address: &str) -> Result<String, simple_server::Error> {
-    let list = btcwallet.check_address(&address, Option::from(0)).map_err(|_| gen_err())?;
+fn html(
+    network: &str,
+    btcwallet: &BTCWallet,
+    address: &str,
+) -> Result<String, simple_server::Error> {
+    let list = btcwallet
+        .check_address(&address, Option::from(0))
+        .map_err(|_| gen_err())?;
 
     let status = match list.last() {
         None => "No tx found yet".to_string(),
