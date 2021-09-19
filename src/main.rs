@@ -1,15 +1,15 @@
+mod btcwallet;
 mod config;
 mod error;
 mod html;
 mod server;
-mod btcwallet;
 
 #[macro_use]
 extern crate log;
 
+use crate::btcwallet::BTCWallet;
 use crate::config::ConfigOpts;
 use crate::server::create_server;
-use crate::btcwallet::BTCWallet;
 use ini::Ini;
 use structopt::StructOpt;
 
