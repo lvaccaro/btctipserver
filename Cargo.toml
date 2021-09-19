@@ -25,6 +25,7 @@ structopt = "0.3"
 qr_code = { version="1.0.0", features = ["bmp"] }
 maud = "0.22.1"
 base64 = "0.13.0"
+edk = { git = "https://github.com/lvaccaro/edk.git" }
 
 [features]
 default = ["electrum", "bdk/key-value-db"]
