@@ -2,14 +2,14 @@ mod config;
 mod error;
 mod html;
 mod server;
-mod wallet;
+mod btcwallet;
 
 #[macro_use]
 extern crate log;
 
 use crate::config::ConfigOpts;
 use crate::server::create_server;
-use crate::wallet::setup_wallet;
+use crate::btcwallet::BTCWallet;
 use ini::Ini;
 use structopt::StructOpt;
 
@@ -23,8 +23,8 @@ fn main() {
     let conf: ConfigOpts = ConfigOpts::from_args();
 
     // Setup wallet
-    let wallet = match setup_wallet(&conf) {
-        Ok(wallet) => wallet,
+    let btcwallet = match BTCWallet::new(&conf) {
+        Ok(btcwallet) => btcwallet,
         Err(e) => {
             error!("{}", e);
             return;
@@ -35,7 +35,7 @@ fn main() {
     let port = conf.port.clone().to_string();
 
     // Start server
-    let server = create_server(conf, wallet);
+    let server = create_server(conf, btcwallet);
 
     server.listen(&host, &port);
 }
