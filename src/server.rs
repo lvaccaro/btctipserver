@@ -141,7 +141,7 @@ pub fn create_server(conf: ConfigOpts, wallet: Wallet<AnyBlockchain, Tree>) -> S
 
 fn last_unused_address(wallet: &Wallet<AnyBlockchain, Tree>) -> Result<Address, bdk::Error> {
     wallet.sync(log_progress(), None)?;
-    wallet.get_address(LastUnused)
+    Ok(wallet.get_address(LastUnused)?.address)
 }
 
 fn is_my_address(

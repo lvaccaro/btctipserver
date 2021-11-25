@@ -21,6 +21,7 @@ pub fn setup_wallet(conf: &ConfigOpts) -> Result<Wallet<AnyBlockchain, Tree>, Er
         socks5: electrum_opts.proxy,
         retry: electrum_opts.retries,
         timeout: electrum_opts.timeout,
+        stop_gap: 20,
     });
 
     // create wallet shared by all requests

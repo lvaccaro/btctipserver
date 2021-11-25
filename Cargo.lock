@@ -68,13 +68,22 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "904dfeac50f3cdaba28fc6f57fdcddb75f49ed61346676a78c4ffe55877802fd"
 
 [[package]]
-name = "bdk"
-version = "0.6.0"
+name = "base64-compat"
+version = "1.0.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "51dcf686dfc6200d641e8619019c027976533b7e2d5c00de2b4182c88287a18b"
+checksum = "5a8d4d2746f89841e49230dd26917df1876050f95abafafbe34f47cb534b88d7"
+dependencies = [
+ "byteorder",
+]
+
+[[package]]
+name = "bdk"
+version = "0.13.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "9f687a9504efaa1650148b9e891b4c111adb31ceeb9011dec578941b00f18c9f"
 dependencies = [
  "async-trait",
- "bdk-macros 0.4.0",
+ "bdk-macros",
  "bitcoin",
  "electrum-client",
  "js-sys",
@@ -89,20 +98,9 @@ dependencies = [
 
 [[package]]
 name = "bdk-macros"
-version = "0.2.0"
+version = "0.6.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "f62874901df222eb0fc3bad6e425bc2a935287b8110be0d1ad6d729af86cf6e1"
-dependencies = [
- "proc-macro2",
- "quote",
- "syn",
-]
-
-[[package]]
-name = "bdk-macros"
-version = "0.4.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "b45570b78250774145859a8f85bfdb6e310663fc82640d7e159a44b1386074a2"
+checksum = "81c1980e50ae23bb6efa9283ae8679d6ea2c6fa6a99fe62533f65f4a25a1a56c"
 dependencies = [
  "proc-macro2",
  "quote",
@@ -111,16 +109,17 @@ dependencies = [
 
 [[package]]
 name = "bech32"
-version = "0.7.3"
+version = "0.8.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "2dabbe35f96fb9507f7330793dc490461b2962659ac5d427181e451a623751d1"
+checksum = "cf9ff0bbfd639f15c74af777d81383cf53efb7c93613f6cab67c6c11e05bbf8b"
 
 [[package]]
 name = "bitcoin"
-version = "0.26.1"
+version = "0.27.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "2c151182f90fc8dad6dc5b332927dcd59889ae53b5db259cc087cee1cb75ee9c"
+checksum = "9a41df6ad9642c5c15ae312dd3d074de38fd3eb7cc87ad4ce10f90292a83fe4d"
 dependencies = [
+ "base64-compat",
  "bech32",
  "bitcoin_hashes",
  "secp256k1",
@@ -129,9 +128,9 @@ dependencies = [
 
 [[package]]
 name = "bitcoin_hashes"
-version = "0.9.6"
+version = "0.10.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "3e6d72ba9671cb0929b5620e1bc30cdf5e206ccb3dbaa8964d67f6efc1e16129"
+checksum = "006cc91e1a1d99819bc5b8214be3555c1f0611b169f527a1fdc54ed1f2b745b0"
 dependencies = [
  "serde",
 ]
@@ -154,7 +153,7 @@ version = "0.1.1-dev"
 dependencies = [
  "base64 0.13.0",
  "bdk",
- "bdk-macros 0.2.0",
+ "bdk-macros",
  "dirs-next",
  "env_logger",
  "log 0.4.14",
@@ -285,9 +284,9 @@ dependencies = [
 
 [[package]]
 name = "electrum-client"
-version = "0.7.0"
+version = "0.8.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "4cab4d90cc575a7daab4cfed9e315912a88071bc47462e6be57516a2f01ccc89"
+checksum = "edd12f125852d77980725243b2a8b3bea73cd4c7a22c33bc52b08b664c561dc7"
 dependencies = [
  "bitcoin",
  "log 0.4.14",
@@ -529,11 +528,12 @@ dependencies = [
 
 [[package]]
 name = "miniscript"
-version = "5.1.0"
+version = "6.0.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "71f455be59a359d50370c4f587afbc5739c862e684c5afecae80ab93e7474b4e"
+checksum = "d69450033bf162edf854d4aacaff82ca5ef34fa81f6cf69e1c81a103f0834997"
 dependencies = [
  "bitcoin",
+ "serde",
 ]
 
 [[package]]
