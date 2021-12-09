@@ -1,5 +1,6 @@
-use crate::config::ConfigOpts;
-use simple_server::{Method, Server, StatusCode};
+use crate::config::BitcoinOpts;
+use simple_server::http::Uri;
+use simple_server::{Method, Request, Response, Server, StatusCode};
 use std::str::from_utf8;
 use std::sync::{Arc, Mutex};
 
@@ -14,7 +15,7 @@ pub fn gen_err() -> simple_server::Error {
     simple_server::Error::Io(io::Error::new(io::ErrorKind::Other, "oh no!"))
 }
 
-pub fn create_server(conf: ConfigOpts, btcwallet: BTCWallet) -> Server {
+pub fn create_server(conf: BitcoinOpts, btcwallet: BTCWallet) -> Server {
     let btcwallet_mutex = Arc::new(Mutex::new(btcwallet));
 
     Server::new(move |request, mut response| {

@@ -23,7 +23,7 @@ fn main() {
     let conf: ConfigOpts = ConfigOpts::from_args();
 
     // Setup wallet
-    let btcwallet = match BTCWallet::new(&conf) {
+    let btcwallet = match BTCWallet::new(&conf.bitcoin_opts) {
         Ok(btcwallet) => btcwallet,
         Err(e) => {
             error!("{}", e);
@@ -35,7 +35,7 @@ fn main() {
     let port = conf.port.clone().to_string();
 
     // Start server
-    let server = create_server(conf, btcwallet);
+    let server = create_server(conf.bitcoin_opts, btcwallet);
 
     server.listen(&host, &port);
 }

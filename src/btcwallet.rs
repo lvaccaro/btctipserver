@@ -1,4 +1,4 @@
-use crate::config::ConfigOpts;
+use crate::config::BitcoinOpts;
 use crate::error::Error;
 use crate::server::gen_err;
 
@@ -21,7 +21,7 @@ pub struct BTCWallet {
 }
 
 impl BTCWallet {
-    pub fn new(conf: &ConfigOpts) -> Result<Self, Error> {
+    pub fn new(conf: &BitcoinOpts) -> Result<Self, Error> {
         // setup database
         let database = sled::open(
             BTCWallet::prepare_home_dir(&conf.data_dir)
