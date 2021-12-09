@@ -30,6 +30,34 @@ pub struct ConfigOpts {
         default_value = "8080"
     )]
     pub port: u16,
+    #[structopt(flatten)]
+    pub bitcoin_opts: BitcoinOpts,
+}
+
+pub(crate) fn load_ini_to_env(ini: Ini) {
+    // load config from ini file (if it exists) into process env
+    if let Some(section_bdk) = ini.section(Some("BDK")) {
+        for (k, v) in section_bdk.iter() {
+            // if env var is not already set, set with ini value
+            if env::var_os(k).is_none() {
+                env::set_var(k.to_uppercase(), v);
+            }
+        }
+    }
+}
+
+// This is a workaround for `structopt` issue #333, #391, #418; see https://github.com/TeXitoi/structopt/issues/333#issuecomment-712265332
+#[cfg_attr(not(doc), allow(missing_docs))]
+#[cfg_attr(
+    doc,
+    doc = r#"
+Bitcoin options
+
+Bitcoin wallet options.
+"#
+)]
+#[derive(Debug, StructOpt, Clone, PartialEq)]
+pub struct BitcoinOpts {
     /// Data Dir
     #[structopt(
         name = "DATADIR",
@@ -67,18 +95,6 @@ pub struct ConfigOpts {
     pub wallet: String,
     #[structopt(flatten)]
     pub electrum_opts: ElectrumOpts,
-}
-
-pub(crate) fn load_ini_to_env(ini: Ini) {
-    // load config from ini file (if it exists) into process env
-    if let Some(section_bdk) = ini.section(Some("BDK")) {
-        for (k, v) in section_bdk.iter() {
-            // if env var is not already set, set with ini value
-            if env::var_os(k).is_none() {
-                env::set_var(k.to_uppercase(), v);
-            }
-        }
-    }
 }
 
 // This is a workaround for `structopt` issue #333, #391, #418; see https://github.com/TeXitoi/structopt/issues/333#issuecomment-712265332
@@ -121,7 +137,7 @@ pub struct ElectrumOpts {
 #[cfg(test)]
 mod test {
 
-    use super::{ConfigOpts, ElectrumOpts};
+    use super::{BitcoinOpts, ConfigOpts, ElectrumOpts};
     use crate::config::load_ini_to_env;
     use bdk::bitcoin::Network;
     use ini::Ini;
@@ -139,15 +155,17 @@ mod test {
         let expected_config_opts = ConfigOpts {
             host: "0.0.0.0".to_string(),
             port: 8080,
-            data_dir: ".bdk-bitcoin".to_string(),
-            network: Network::Bitcoin,
-            descriptor: "wpkh(tpubEBr4i6yk5nf5DAaJpsi9N2pPYBeJ7fZ5Z9rmN4977iYLCGco1VyjB9tvvuvYtfZzjD5A8igzgw3HeWeeKFmanHYqksqZXYXGsw5zjnj7KM9/*)".parse().unwrap(),
-            wallet: "btctipserver".to_string(),
-            electrum_opts: ElectrumOpts {
-                proxy: None,
-                retries: 5,
-                timeout: None,
-                electrum: "ssl://electrum.blockstream.info:60002".to_string()
+            bitcoin_opts: BitcoinOpts {
+                data_dir: ".bdk-bitcoin".to_string(),
+                network: Network::Bitcoin,
+                descriptor: "wpkh(tpubEBr4i6yk5nf5DAaJpsi9N2pPYBeJ7fZ5Z9rmN4977iYLCGco1VyjB9tvvuvYtfZzjD5A8igzgw3HeWeeKFmanHYqksqZXYXGsw5zjnj7KM9/*)".parse().unwrap(),
+                wallet: "btctipserver".to_string(),
+                electrum_opts: ElectrumOpts {
+                    proxy: None,
+                    retries: 5,
+                    timeout: None,
+                    electrum: "ssl://electrum.blockstream.info:60002".to_string()
+                }
             }
         };
 
@@ -178,15 +196,17 @@ mod test {
         let expected_config_opts = ConfigOpts {
             host: "0.0.0.0".to_string(),
             port: 8080,
-            data_dir: ".bdk-bitcoin".to_string(),
-            network: Network::Bitcoin,
-            descriptor: "wpkh(tpubEBr4i6yk5nf5DAaJpsi9N2pPYBeJ7fZ5Z9rmN4977iYLCGco1VyjB9tvvuvYtfZzjD5A8igzgw3HeWeeKFmanHYqksqZXYXGsw5zjnj7KM9/*)".parse().unwrap(),
-            wallet: "test".to_string(),
-            electrum_opts: ElectrumOpts {
-                proxy: Some("127.0.0.1:9150".to_string()),
-                retries: 5,
-                timeout: Some(2),
-                electrum: "ssl://electrum.blockstream.info:60003".to_string()
+            bitcoin_opts: BitcoinOpts {
+                data_dir: ".bdk-bitcoin".to_string(),
+                network: Network::Bitcoin,
+                descriptor: "wpkh(tpubEBr4i6yk5nf5DAaJpsi9N2pPYBeJ7fZ5Z9rmN4977iYLCGco1VyjB9tvvuvYtfZzjD5A8igzgw3HeWeeKFmanHYqksqZXYXGsw5zjnj7KM9/*)".parse().unwrap(),
+                wallet: "test".to_string(),
+                electrum_opts: ElectrumOpts {
+                    proxy: Some("127.0.0.1:9150".to_string()),
+                    retries: 5,
+                    timeout: Some(2),
+                    electrum: "ssl://electrum.blockstream.info:60003".to_string()
+                }
             }
         };
 
