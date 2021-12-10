@@ -6,6 +6,7 @@ mod server;
 
 #[macro_use]
 extern crate log;
+extern crate http;
 
 use crate::btcwallet::BTCWallet;
 use crate::config::ConfigOpts;
