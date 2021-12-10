@@ -1,6 +1,6 @@
 use crate::config::BitcoinOpts;
-use simple_server::http::Uri;
-use simple_server::{Method, Request, Response, Server, StatusCode};
+use http::Uri;
+use simple_server::{Method, Response, ResponseBuilder, Server, StatusCode};
 use std::str::from_utf8;
 use std::sync::{Arc, Mutex};
 
@@ -8,6 +8,7 @@ use crate::btcwallet::BTCWallet;
 use crate::html;
 use crate::html::not_found;
 use std::io;
+use std::sync::MutexGuard;
 
 /// Returns a generic simple_server::Error, used to catch errors to prevent tearing
 /// down the server with a simple request, should be removed in favor of specific errors
@@ -82,28 +83,12 @@ pub fn create_server(conf: BitcoinOpts, btcwallet: BTCWallet) -> Server {
                     Err(e) => Ok(response.body(format!("{:?}", e).as_bytes().to_vec())?),
                 }
             }
-            (&Method::GET, "/bitcoin/") => {
-                let address = match request.uri().query() {
-                    Some(address) => address,
-                    None => return Ok(response.body(not_found().as_bytes().to_vec())?),
-                };
-                match btcwallet.is_my_address(address) {
-                    Ok(mine) => {
-                        if !mine {
-                            return Ok(response.body(
-                                format!("Address {} is not mine", address)
-                                    .as_bytes()
-                                    .to_vec(),
-                            )?);
-                        }
-                    }
-                    Err(e) => return Ok(response.body(format!("{:?}", e).as_bytes().to_vec())?),
-                };
-                match html(&conf.network.to_string(), &btcwallet, address) {
-                    Ok(txt) => Ok(response.body(txt.as_bytes().to_vec())?),
-                    Err(e) => Ok(response.body(format!("{:?}", e).as_bytes().to_vec())?),
-                }
-            }
+            (&Method::GET, "/bitcoin/") => bitcoin(
+                &conf.network.to_string(),
+                btcwallet,
+                request.uri(),
+                response,
+            ),
             (&Method::GET, "/bitcoin") => {
                 let address = btcwallet.last_unused_address().map_err(|_| gen_err())?;
                 let link = format!("/bitcoin/?{}", address);
@@ -129,9 +114,37 @@ pub fn create_server(conf: BitcoinOpts, btcwallet: BTCWallet) -> Server {
     })
 }
 
+fn bitcoin(
+    network: &str,
+    btcwallet: MutexGuard<BTCWallet>,
+    uri: &Uri,
+    mut response: ResponseBuilder,
+) -> Result<Response<Vec<u8>>, simple_server::Error> {
+    let address = match uri.query() {
+        Some(address) => address,
+        None => return Ok(response.body(not_found().as_bytes().to_vec())?),
+    };
+    match btcwallet.is_my_address(address) {
+        Ok(mine) => {
+            if !mine {
+                return Ok(response.body(
+                    format!("Address {} is not mine", address)
+                        .as_bytes()
+                        .to_vec(),
+                )?);
+            }
+        }
+        Err(e) => return Ok(response.body(format!("{:?}", e).as_bytes().to_vec())?),
+    };
+    match html(network, btcwallet, address) {
+        Ok(txt) => Ok(response.body(txt.as_bytes().to_vec())?),
+        Err(e) => Ok(response.body(format!("{:?}", e).as_bytes().to_vec())?),
+    }
+}
+
 fn html(
     network: &str,
-    btcwallet: &BTCWallet,
+    btcwallet: MutexGuard<BTCWallet>,
     address: &str,
 ) -> Result<String, simple_server::Error> {
     let list = btcwallet
