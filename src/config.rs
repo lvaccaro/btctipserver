@@ -36,15 +36,15 @@ pub struct ConfigOpts {
 
 #[derive(Debug, Clone, PartialEq, StructOpt)]
 pub enum Platforms {
-    #[structopt(flatten)]
+    #[structopt(name = "bitcoin", about = "use for bitcoin")]
     Bitcoin(BitcoinOpts),
-    #[structopt(flatten)]
+    #[structopt(name = "liquid", about = "use for liquid")]
     Liquid(LiquidOpts),
 }
 
 pub(crate) fn load_ini_to_env(ini: Ini) {
     // load config from ini file (if it exists) into process env
-    if let Some(section_bdk) = ini.section(Some("BDK")) {
+    if let Some(section_bdk) = ini.section(None::<String>) {
         for (k, v) in section_bdk.iter() {
             // if env var is not already set, set with ini value
             if env::var_os(k).is_none() {
