@@ -1,6 +1,7 @@
 use crate::config::BitcoinOpts;
 use crate::error::Error;
 use crate::server::gen_err;
+use crate::wallet::Wallet;
 
 use bdk::bitcoin::Address;
 use bdk::blockchain::{
@@ -10,24 +11,19 @@ use bdk::blockchain::{
 use bdk::electrum_client::{Client, ElectrumApi, ListUnspentRes};
 use bdk::sled::{self, Tree};
 use bdk::wallet::AddressIndex::LastUnused;
-use bdk::Wallet;
 use std::fs;
 use std::path::PathBuf;
 use std::str::FromStr;
 
 pub struct BTCWallet {
-    wallet: Wallet<AnyBlockchain, Tree>,
+    wallet: bdk::Wallet<AnyBlockchain, Tree>,
     client: Client,
 }
 
 impl BTCWallet {
     pub fn new(conf: &BitcoinOpts) -> Result<Self, Error> {
         // setup database
-        let database = sled::open(
-            BTCWallet::prepare_home_dir(&conf.data_dir)
-                .to_str()
-                .unwrap(),
-        )?;
+        let database = sled::open(Wallet::prepare_home_dir(&conf.data_dir).to_str().unwrap())?;
         let tree = database.open_tree(&conf.wallet)?;
 
         // setup electrum blockchain client
@@ -40,7 +36,7 @@ impl BTCWallet {
         });
 
         // create wallet shared by all requests
-        let wallet = Wallet::new(
+        let wallet = bdk::Wallet::new(
             &conf.descriptor,
             None,
             conf.network,
@@ -65,13 +61,15 @@ impl BTCWallet {
         dir.push("database.sled");
         dir
     }
+}
 
-    pub fn last_unused_address(&self) -> Result<Address, bdk::Error> {
+impl Wallet for BTCWallet {
+    fn last_unused_address(&self) -> Result<String, bdk::Error> {
         self.wallet.sync(log_progress(), None)?;
-        self.wallet.get_address(LastUnused)
+        Ok(self.wallet.get_address(LastUnused)?.to_string())
     }
 
-    pub fn is_my_address(&self, addr: &str) -> Result<bool, simple_server::Error> {
+    fn is_my_address(&self, addr: &str) -> Result<bool, simple_server::Error> {
         let script = Address::from_str(addr)
             .map_err(|_| gen_err())?
             .script_pubkey();
@@ -84,7 +82,7 @@ impl BTCWallet {
         self.wallet.is_mine(&script).map_err(|_| gen_err())
     }
 
-    pub fn check_address(
+    fn check_address(
         &self,
         addr: &str,
         from_height: Option<usize>,
@@ -104,5 +102,9 @@ impl BTCWallet {
             .collect();
 
         Ok(array)
+    }
+
+    fn network(&self) -> Result<String, bdk::Error> {
+        Ok(self.wallet.network().to_string())
     }
 }
