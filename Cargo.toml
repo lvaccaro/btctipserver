@@ -26,6 +26,8 @@ qr_code = { version="1.0.0", features = ["bmp"] }
 maud = "0.22.1"
 base64 = "0.13.0"
 edk = { git = "https://github.com/lvaccaro/edk.git" }
+http = "0.1.0"
+hex = "0.4"
 
 [features]
 default = ["electrum", "bdk/key-value-db"]
