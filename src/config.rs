@@ -31,7 +31,7 @@ pub struct ConfigOpts {
     )]
     pub port: u16,
     #[structopt(subcommand)]
-    pub sub: Platforms,
+    pub cmd: Platforms,
 }
 
 #[derive(Debug, Clone, PartialEq, StructOpt)]
@@ -232,7 +232,7 @@ mod test {
         let expected_config_opts = ConfigOpts {
             host: "0.0.0.0".to_string(),
             port: 8080,
-            sub: Platforms::Bitcoin( BitcoinOpts {
+            cmd: Platforms::Bitcoin( BitcoinOpts {
                 data_dir: ".bdk-bitcoin".to_string(),
                 network: Network::Bitcoin,
                 descriptor: "wpkh(tpubEBr4i6yk5nf5DAaJpsi9N2pPYBeJ7fZ5Z9rmN4977iYLCGco1VyjB9tvvuvYtfZzjD5A8igzgw3HeWeeKFmanHYqksqZXYXGsw5zjnj7KM9/*)".parse().unwrap(),
@@ -273,7 +273,7 @@ mod test {
         let expected_config_opts = ConfigOpts {
             host: "0.0.0.0".to_string(),
             port: 8080,
-            sub: Platforms::Bitcoin( BitcoinOpts {
+            cmd: Platforms::Bitcoin( BitcoinOpts {
                 data_dir: ".bdk-bitcoin".to_string(),
                 network: Network::Bitcoin,
                 descriptor: "wpkh(tpubEBr4i6yk5nf5DAaJpsi9N2pPYBeJ7fZ5Z9rmN4977iYLCGco1VyjB9tvvuvYtfZzjD5A8igzgw3HeWeeKFmanHYqksqZXYXGsw5zjnj7KM9/*)".parse().unwrap(),
