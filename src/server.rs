@@ -1,12 +1,14 @@
 use crate::config::BitcoinOpts;
 use http::Uri;
-use simple_server::{Method, Response, ResponseBuilder, Server, StatusCode};
+use simple_server::{Method, Request, Response, ResponseBuilder, Server, StatusCode};
 use std::str::from_utf8;
 use std::sync::{Arc, Mutex};
 
+use crate::html::not_found;
 use crate::btcwallet::BTCWallet;
 use crate::html;
-use crate::html::not_found;
+use crate::liquidwallet::LiquidWallet;
+use crate::wallet::Wallet;
 use std::io;
 use std::sync::MutexGuard;
 
@@ -16,94 +18,29 @@ pub fn gen_err() -> simple_server::Error {
     simple_server::Error::Io(io::Error::new(io::ErrorKind::Other, "oh no!"))
 }
 
-pub fn create_server(conf: BitcoinOpts, btcwallet: BTCWallet) -> Server {
-    let btcwallet_mutex = Arc::new(Mutex::new(btcwallet));
-
+pub fn create_server(wallet: impl Wallet + 'static) -> Server {
+    let wallet_mutex = Arc::new(Mutex::new(wallet));
     Server::new(move |request, mut response| {
         debug!("Request: {} {}", request.method(), request.uri());
-        debug!(
-            "Body: {}",
-            from_utf8(request.body()).map_err(|_| gen_err())?
-        );
+
         debug!("Headers:");
         for (key, value) in request.headers() {
             debug!("{}: {}", key, value.to_str().unwrap_or("can't map to str"));
         }
-
-        // unlock btcwallet mutex for this request
-        let btcwallet = btcwallet_mutex.lock().map_err(|_| gen_err())?;
-
+        let wallet_lock = wallet_mutex.lock().unwrap();
         match (request.method(), request.uri().path()) {
-            (&Method::GET, "/bitcoin/api/last_unused_qr.bmp") => {
-                let address = btcwallet.last_unused_address();
-                match address {
-                    Ok(addr) => {
-                        info!("last unused addr {}", addr.to_string());
-                        let qr = html::create_bmp_qr(&addr.to_qr_uri()).map_err(|_| gen_err())?;
-                        response.header("Content-type", "image/bmp");
-                        Ok(response.body(qr)?)
-                    }
-                    Err(e) => Ok(response.body(e.to_string().as_bytes().to_vec())?),
-                }
-            }
-            (&Method::GET, "/bitcoin/api/last_unused") => {
-                let address = btcwallet.last_unused_address();
-                match address {
-                    Ok(a) => {
-                        info!("last unused addr {}", a.to_string());
-                        let value = serde_json::json!({
-                            "network": a.network.to_string(),
-                            "address": a.to_string()
-                        });
-                        Ok(response.body(value.to_string().as_bytes().to_vec())?)
-                    }
-                    Err(e) => Ok(response.body(e.to_string().as_bytes().to_vec())?),
-                }
-            }
-            (&Method::GET, "/bitcoin/api/check") => {
-                // curl 127.0.0.1:7878/bitcoin/api/check?tb1qm4safqvzu28jvjz5juta7qutfaqst7nsfsumuz:0
-                let mut query = request.uri().query().unwrap_or("").split(':');
-                let addr = query.next().ok_or_else(|| gen_err())?;
-                let height = query.next().ok_or_else(|| gen_err())?;
-                let h: usize = height.parse::<usize>().map_err(|_| gen_err())?;
-                let list = btcwallet.check_address(&addr, Option::from(h));
-                match list {
-                    Ok(list) => {
-                        debug!("addr {} height {}", addr, h);
-                        for item in list.iter() {
-                            debug!("{} {}", item.value, item.height);
-                            let _value = serde_json::json!({
-                                "value": item.value,
-                                "height": item.height,
-                                "tx_hash": item.tx_hash,
-                            });
-                        }
-                        Ok(response.body("".as_bytes().to_vec())?)
-                    }
-                    Err(e) => Ok(response.body(format!("{:?}", e).as_bytes().to_vec())?),
-                }
-            }
-            (&Method::GET, "/bitcoin/") => bitcoin(
-                &conf.network.to_string(),
-                btcwallet,
-                request.uri(),
-                response,
-            ),
-            (&Method::GET, "/bitcoin") => {
-                let address = btcwallet.last_unused_address().map_err(|_| gen_err())?;
-                let link = format!("/bitcoin/?{}", address);
-                let redirect = html::redirect(link.as_str());
-                match redirect {
-                    Ok(txt) => Ok(response.body(txt.as_bytes().to_vec())?),
-                    Err(e) => Ok(response.body(e.to_string().as_bytes().to_vec())?),
-                }
-            }
             (&Method::GET, "/") => {
-                let link = "/bitcoin";
-                let redirect = html::redirect(link);
-                match redirect {
-                    Ok(txt) => Ok(response.body(txt.as_bytes().to_vec())?),
-                    Err(e) => Ok(response.body(e.to_string().as_bytes().to_vec())?),
+                if request.uri().query().is_none() {
+                    match redirect(wallet_lock) {
+                        Ok(txt) => Ok(response.body(txt.as_bytes().to_vec())?),
+                        Err(e) => Ok(response.body(not_found().as_bytes().to_vec())?),
+                    }
+                } else {
+                    let network = wallet_lock.network().unwrap();
+                    match page(wallet_lock, network.as_str(), request.uri()) {
+                        Ok(txt) => Ok(response.body(txt.as_bytes().to_vec())?),
+                        Err(e) => Ok(response.body(not_found().as_bytes().to_vec())?),
+                    }
                 }
             }
             (_, _) => {
@@ -114,40 +51,23 @@ pub fn create_server(conf: BitcoinOpts, btcwallet: BTCWallet) -> Server {
     })
 }
 
-fn bitcoin(
-    network: &str,
-    btcwallet: MutexGuard<BTCWallet>,
-    uri: &Uri,
-    mut response: ResponseBuilder,
-) -> Result<Response<Vec<u8>>, simple_server::Error> {
-    let address = match uri.query() {
-        Some(address) => address,
-        None => return Ok(response.body(not_found().as_bytes().to_vec())?),
-    };
-    match btcwallet.is_my_address(address) {
-        Ok(mine) => {
-            if !mine {
-                return Ok(response.body(
-                    format!("Address {} is not mine", address)
-                        .as_bytes()
-                        .to_vec(),
-                )?);
-            }
-        }
-        Err(e) => return Ok(response.body(format!("{:?}", e).as_bytes().to_vec())?),
-    };
-    match html(network, btcwallet, address) {
-        Ok(txt) => Ok(response.body(txt.as_bytes().to_vec())?),
-        Err(e) => Ok(response.body(format!("{:?}", e).as_bytes().to_vec())?),
-    }
+pub fn redirect(wallet: MutexGuard<impl Wallet>) -> Result<String, simple_server::Error> {
+    let address = wallet.last_unused_address().map_err(|_| gen_err())?;
+    let link = format!("/?{}", address);
+    html::redirect(link.as_str()).map_err(|_| gen_err())
 }
 
-fn html(
+pub fn page(
+    wallet: MutexGuard<impl Wallet>,
     network: &str,
-    btcwallet: MutexGuard<BTCWallet>,
-    address: &str,
+    uri: &Uri,
 ) -> Result<String, simple_server::Error> {
-    let list = btcwallet
+    let address = uri.query().unwrap();
+    let mine = wallet.is_my_address(address).map_err(|_| gen_err())?;
+    if !mine {
+        return Ok(format!("Address {} is not mine", address));
+    }
+    let list = wallet
         .check_address(&address, Option::from(0))
         .map_err(|_| gen_err())?;
 
