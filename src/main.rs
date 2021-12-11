@@ -15,15 +15,8 @@ use crate::btcwallet::BTCWallet;
 use crate::config::{ConfigOpts, Platforms};
 use crate::liquidwallet::LiquidWallet;
 
-use crate::html::not_found;
-use crate::wallet::Wallet;
-
 use ini::Ini;
-use std::sync::{Arc, Mutex, MutexGuard};
 use structopt::StructOpt;
-
-use http::Uri;
-use simple_server::{Method, Request, Response, ResponseBuilder, Server, StatusCode};
 
 fn main() {
     env_logger::init();
@@ -33,7 +26,7 @@ fn main() {
 
     // Read env and commandline args
     let conf: ConfigOpts = ConfigOpts::from_args();
-    let server = match conf.sub {
+    let server = match conf.cmd {
         Platforms::Bitcoin(opts) => {
             let wallet = BTCWallet::new(&opts).unwrap();
             server::create_server(wallet)
