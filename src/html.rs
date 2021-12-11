@@ -23,6 +23,9 @@ fn inner_network(network: &str) -> Markup {
     let network = network.to_lowercase();
     let partial = html! {
         div.d-flex.align-items-center."text-white-50".rounded.box-shadow."p-3"."my-3"
+        .bg-black
+        .bg-teal[network == "liquid"]
+        .bg-gray[network == "elements"]
         .bg-orange[network == "bitcoin"]
         .bg-purple[network == "testnet"]
         .bg-blue[network == "regtest"]
