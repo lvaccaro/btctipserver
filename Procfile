@@ -1,1 +1,1 @@
-web: ./target/release/btctipserver
+web: ./target/release/btctipserver bitcoin

@@ -1,9 +1,9 @@
 {
   "name": "BTCTipServer",
-  "description": "Another Bitcoin payment service, based on bdk and electrum.",
+  "description": "Another Bitcoin / Liquid payment service, based on bdk and electrum.",
   "repository": "https://github.com/lvaccaro/btctipserver",
-  "keywords": ["bitcoin", "rust", "payment", "service"],
-  "success_url": "/bitcoin",
+  "keywords": ["bitcoin", "rust", "payment", "service", "liquid"],
+  "success_url": "/",
   "buildpacks": [
     {
       "url": "https://github.com/emk/heroku-buildpack-rust.git"

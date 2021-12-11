@@ -11,29 +11,29 @@ Another Bitcoin payment service, based on [bdk](https://github.com/bitcoindevkit
 ### Get it start
 Build and run service (default port is 8080):
 ```
-RUST_LOG=info cargo run -- --descriptor "wpkh(tpubEBr4i6yk5nf5DAaJpsi9N2pPYBeJ7fZ5Z9rmN4977iYLCGco1VyjB9tvvuvYtfZzjD5A8igzgw3HeWeeKFmanHYqksqZXYXGsw5zjnj7KM9/*)"
+RUST_LOG=info cargo run -- bitcoin --descriptor "wpkh(tpubEBr4i6yk5nf5DAaJpsi9N2pPYBeJ7fZ5Z9rmN4977iYLCGco1VyjB9tvvuvYtfZzjD5A8igzgw3HeWeeKFmanHYqksqZXYXGsw5zjnj7KM9/*)"
 ```
 
-Open the local web page on your browser using url [localhost:8080/bitcoin](http://localhost:8080/bitcoin).
+Open the local web page on your browser using url [localhost:8080/](http://localhost:8080/).
 
 ### Setup
 
-If you will be configuring your server via command line args or environment variables then no 
-changes to the project are needed. If you would like to configure your wallet parameters in a 
-`config.ini` file then see `config_example.ini` as example. 
+If you will be configuring your server via command line args or environment variables then no
+changes to the project are needed. If you would like to configure your wallet parameters in a
+`config.ini` file then see `config_example.ini` as example.
 
-### Deploy on heroku 
+### Deploy on heroku
 
 #### Configured via environment vars
-1. Fork this project 
+1. Fork this project
 2. Press the below button
 3. When prompted enter required configuration values for your node
 
 [![Deploy](https://www.herokucdn.com/deploy/button.svg)](https://heroku.com/deploy)
 
-OR 
+OR
 
-#### Configured via .ini file 
+#### Configured via .ini file
 1. Fork the project
 2. Copy `config_example.ini` to `config.ini`
 3. Copy `app_ini_example.json` to `app.json`
