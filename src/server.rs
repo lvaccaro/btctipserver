@@ -1,13 +1,9 @@
-use crate::config::BitcoinOpts;
 use http::Uri;
-use simple_server::{Method, Request, Response, ResponseBuilder, Server, StatusCode};
-use std::str::from_utf8;
+use simple_server::{Method, Server, StatusCode};
 use std::sync::{Arc, Mutex};
 
-use crate::html::not_found;
-use crate::btcwallet::BTCWallet;
 use crate::html;
-use crate::liquidwallet::LiquidWallet;
+use crate::html::not_found;
 use crate::wallet::Wallet;
 use std::io;
 use std::sync::MutexGuard;
@@ -33,13 +29,13 @@ pub fn create_server(wallet: impl Wallet + 'static) -> Server {
                 if request.uri().query().is_none() {
                     match redirect(wallet_lock) {
                         Ok(txt) => Ok(response.body(txt.as_bytes().to_vec())?),
-                        Err(e) => Ok(response.body(not_found().as_bytes().to_vec())?),
+                        Err(_e) => Ok(response.body(not_found().as_bytes().to_vec())?),
                     }
                 } else {
                     let network = wallet_lock.network().unwrap();
                     match page(wallet_lock, network.as_str(), request.uri()) {
                         Ok(txt) => Ok(response.body(txt.as_bytes().to_vec())?),
-                        Err(e) => Ok(response.body(not_found().as_bytes().to_vec())?),
+                        Err(_e) => Ok(response.body(not_found().as_bytes().to_vec())?),
                     }
                 }
             }
@@ -67,20 +63,19 @@ pub fn page(
     if !mine {
         return Ok(format!("Address {} is not mine", address));
     }
-    let list = wallet
-        .check_address(&address, Option::from(0))
-        .map_err(|_| gen_err())?;
+    let results = wallet
+        .balance_address(&address, Option::from(0))
+        .map_err(|_| gen_err())?
+        .into_iter()
+        .filter(|(_, v)| *v > 0)
+        .map(|(k, v)| (k.clone(), v.clone()))
+        .map(|(k, v)| format!("{}: {}", k, v))
+        .collect::<Vec<String>>()
+        .join(", ");
 
-    let status = match list.last() {
-        None => "No tx found yet".to_string(),
-        Some(unspent) => {
-            let location = match unspent.height {
-                0 => "in mempool".to_string(),
-                _ => format!("at {}", unspent.height),
-            };
-
-            format!("Received {} sat {}", unspent.value, location)
-        }
+    let txt = match results.is_empty() {
+        true => "No tx found yet".to_string(),
+        _ => results,
     };
-    html::page(network, address, status.as_str())
+    html::page(network, address, txt.as_str())
 }
