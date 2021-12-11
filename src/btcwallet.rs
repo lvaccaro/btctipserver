@@ -32,6 +32,7 @@ impl BTCWallet {
             socks5: electrum_opts.proxy,
             retry: electrum_opts.retries,
             timeout: electrum_opts.timeout,
+            stop_gap: 20,
         });
 
         // create wallet shared by all requests
@@ -79,6 +80,7 @@ impl Wallet for BTCWallet {
             .wallet
             .get_address(LastUnused)
             .map_err(|_| gen_err())?
+            .address
             .to_string())
     }
 
