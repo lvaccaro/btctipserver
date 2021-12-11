@@ -161,7 +161,7 @@ pub fn page(network: &str, address: &str, status: &str) -> Result<String, simple
                             }
                         }
                         small class="d-block text-right mt-3" {
-                            a href="/bitcoin" { "Get unused address" }
+                            a href="/" { "Get unused address" }
                         }
                     }
                 }
