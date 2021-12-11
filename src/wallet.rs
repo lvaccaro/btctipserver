@@ -1,18 +1,17 @@
+use std::collections::HashMap;
 use std::fs;
 use std::path::PathBuf;
 
-use bdk::electrum_client::ListUnspentRes;
-
 pub trait Wallet: Send {
-    fn last_unused_address(&self) -> Result<String, bdk::Error>;
+    fn last_unused_address(&self) -> Result<String, simple_server::Error>;
 
     fn is_my_address(&self, addr: &str) -> Result<bool, simple_server::Error>;
 
-    fn check_address(
+    fn balance_address(
         &self,
         addr: &str,
         from_height: Option<usize>,
-    ) -> Result<Vec<ListUnspentRes>, simple_server::Error>;
+    ) -> Result<HashMap<String, u64>, simple_server::Error>;
 
     fn network(&self) -> Result<String, bdk::Error>;
 }
