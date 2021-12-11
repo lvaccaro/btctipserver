@@ -30,8 +30,16 @@ pub struct ConfigOpts {
         default_value = "8080"
     )]
     pub port: u16,
+    #[structopt(subcommand)]
+    pub sub: Platforms,
+}
+
+#[derive(Debug, Clone, PartialEq, StructOpt)]
+pub enum Platforms {
     #[structopt(flatten)]
-    pub bitcoin_opts: BitcoinOpts,
+    Bitcoin(BitcoinOpts),
+    #[structopt(flatten)]
+    Liquid(LiquidOpts),
 }
 
 pub(crate) fn load_ini_to_env(ini: Ini) {
@@ -102,6 +110,65 @@ pub struct BitcoinOpts {
 #[cfg_attr(
     doc,
     doc = r#"
+Liquid options
+
+Liquid wallet options.
+"#
+)]
+#[derive(Debug, StructOpt, Clone, PartialEq)]
+pub struct LiquidOpts {
+    /// Data Dir
+    #[structopt(
+        name = "DATADIR",
+        env = "EDK_DATADIR",
+        long = "datadir",
+        default_value = ".edk-bitcoin"
+    )]
+    pub data_dir: String,
+    /// Liquid network
+    #[structopt(
+        name = "NETWORK",
+        env = "NETWORK",
+        short = "n",
+        long = "network",
+        default_value = "elements",
+        possible_values = &["liquid","elements"]
+    )]
+    pub network: String,
+    /// Wallet output descriptor, use public keys only
+    #[structopt(
+        name = "DESCRIPTOR",
+        env = "DESCRIPTOR",
+        short = "d",
+        long = "descriptor"
+    )]
+    pub descriptor: String,
+    /// Wallet output descriptor, use public keys only
+    #[structopt(
+        name = "MASTER_BLINDING_KEY",
+        env = "MASTER_BLINDING_KEY",
+        short = "b",
+        long = "master_blinding_key"
+    )]
+    pub master_blinding_key: String,
+    /// Wallet name
+    #[structopt(
+        name = "WALLET",
+        env = "WALLET",
+        short = "w",
+        long = "wallet",
+        default_value = "btctipserver"
+    )]
+    pub wallet: String,
+    #[structopt(flatten)]
+    pub electrum_opts: ElectrumOpts,
+}
+
+// This is a workaround for `structopt` issue #333, #391, #418; see https://github.com/TeXitoi/structopt/issues/333#issuecomment-712265332
+#[cfg_attr(not(doc), allow(missing_docs))]
+#[cfg_attr(
+    doc,
+    doc = r#"
 Electrum options
 
 Electrum blockchain client options.
@@ -134,11 +201,21 @@ pub struct ElectrumOpts {
     pub electrum: String,
 }
 
+impl LiquidOpts {
+    pub fn network(&self) -> &'static edk::miniscript::elements::AddressParams {
+        match self.network.as_str() {
+            "liquid" => &edk::miniscript::elements::AddressParams::LIQUID,
+            _ => &edk::miniscript::elements::AddressParams::ELEMENTS,
+        }
+    }
+}
+
 #[cfg(test)]
 mod test {
 
     use super::{BitcoinOpts, ConfigOpts, ElectrumOpts};
     use crate::config::load_ini_to_env;
+    use crate::config::Platforms;
     use bdk::bitcoin::Network;
     use ini::Ini;
     use structopt;
@@ -155,7 +232,7 @@ mod test {
         let expected_config_opts = ConfigOpts {
             host: "0.0.0.0".to_string(),
             port: 8080,
-            bitcoin_opts: BitcoinOpts {
+            sub: Platforms::Bitcoin( BitcoinOpts {
                 data_dir: ".bdk-bitcoin".to_string(),
                 network: Network::Bitcoin,
                 descriptor: "wpkh(tpubEBr4i6yk5nf5DAaJpsi9N2pPYBeJ7fZ5Z9rmN4977iYLCGco1VyjB9tvvuvYtfZzjD5A8igzgw3HeWeeKFmanHYqksqZXYXGsw5zjnj7KM9/*)".parse().unwrap(),
@@ -166,7 +243,7 @@ mod test {
                     timeout: None,
                     electrum: "ssl://electrum.blockstream.info:60002".to_string()
                 }
-            }
+            })
         };
 
         assert_eq!(expected_config_opts, config_opts);
@@ -196,7 +273,7 @@ mod test {
         let expected_config_opts = ConfigOpts {
             host: "0.0.0.0".to_string(),
             port: 8080,
-            bitcoin_opts: BitcoinOpts {
+            sub: Platforms::Bitcoin( BitcoinOpts {
                 data_dir: ".bdk-bitcoin".to_string(),
                 network: Network::Bitcoin,
                 descriptor: "wpkh(tpubEBr4i6yk5nf5DAaJpsi9N2pPYBeJ7fZ5Z9rmN4977iYLCGco1VyjB9tvvuvYtfZzjD5A8igzgw3HeWeeKFmanHYqksqZXYXGsw5zjnj7KM9/*)".parse().unwrap(),
@@ -207,7 +284,7 @@ mod test {
                     timeout: Some(2),
                     electrum: "ssl://electrum.blockstream.info:60003".to_string()
                 }
-            }
+            }),
         };
 
         assert_eq!(expected_config_opts, config_opts);
