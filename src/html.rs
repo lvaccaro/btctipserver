@@ -112,12 +112,23 @@ pub fn not_found() -> String {
     html.into_string()
 }
 
+fn address_link(network: &str, address: &str) -> Result<String, simple_server::Error> {
+    Ok(format!("{}:{}", network, address))
+}
+
+fn address_qr(network: &str, address: &str) -> Result<String, simple_server::Error> {
+    match network {
+        "bitcoin" | "testnet" => Ok(Address::from_str(address)
+            .map_err(|_| gen_err())?
+            .to_qr_uri()),
+        _ => Ok(address_link(network, address)?),
+    }
+}
+
 pub fn page(network: &str, address: &str, status: &str) -> Result<String, simple_server::Error> {
-    let meta_http_content = format!("{}; URL=/bitcoin/?{}", 10, address);
-    let address_link = format!("bitcoin:{}", address);
-    let address_qr = Address::from_str(address)
-        .map_err(|_| gen_err())?
-        .to_qr_uri();
+    let meta_http_content = format!("{}; URL=/?{}", 10, address);
+    let address_link = address_link(network, address)?;
+    let address_qr = address_qr(network, address)?;
     let qr = create_bmp_base64_qr(&address_qr).map_err(|_| gen_err())?;
 
     let html = html! {
