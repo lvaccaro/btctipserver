@@ -11,8 +11,7 @@ use bdk::blockchain::{
 use bdk::electrum_client::{Client, ElectrumApi, ListUnspentRes};
 use bdk::sled::{self, Tree};
 use bdk::wallet::AddressIndex::LastUnused;
-use std::fs;
-use std::path::PathBuf;
+use std::collections::HashMap;
 use std::str::FromStr;
 
 pub struct BTCWallet {
@@ -48,40 +47,6 @@ impl BTCWallet {
         Ok(BTCWallet { wallet, client })
     }
 
-    pub fn prepare_home_dir(datadir: &str) -> PathBuf {
-        let mut dir = PathBuf::new();
-        dir.push(&dirs_next::home_dir().unwrap());
-        dir.push(datadir);
-
-        if !dir.exists() {
-            info!("Creating home directory {}", dir.as_path().display());
-            fs::create_dir(&dir).unwrap();
-        }
-
-        dir.push("database.sled");
-        dir
-    }
-}
-
-impl Wallet for BTCWallet {
-    fn last_unused_address(&self) -> Result<String, bdk::Error> {
-        self.wallet.sync(log_progress(), None)?;
-        Ok(self.wallet.get_address(LastUnused)?.to_string())
-    }
-
-    fn is_my_address(&self, addr: &str) -> Result<bool, simple_server::Error> {
-        let script = Address::from_str(addr)
-            .map_err(|_| gen_err())?
-            .script_pubkey();
-        if self.wallet.is_mine(&script).map_err(|_| gen_err())? {
-            return Ok(true);
-        }
-        self.wallet
-            .sync(log_progress(), None)
-            .map_err(|_| gen_err())?;
-        self.wallet.is_mine(&script).map_err(|_| gen_err())
-    }
-
     fn check_address(
         &self,
         addr: &str,
@@ -102,6 +67,54 @@ impl Wallet for BTCWallet {
             .collect();
 
         Ok(array)
+    }
+}
+
+impl Wallet for BTCWallet {
+    fn last_unused_address(&self) -> Result<String, simple_server::Error> {
+        self.wallet
+            .sync(log_progress(), None)
+            .map_err(|_| gen_err())?;
+        Ok(self
+            .wallet
+            .get_address(LastUnused)
+            .map_err(|_| gen_err())?
+            .to_string())
+    }
+
+    fn is_my_address(&self, addr: &str) -> Result<bool, simple_server::Error> {
+        let script = Address::from_str(addr)
+            .map_err(|_| gen_err())?
+            .script_pubkey();
+        if self.wallet.is_mine(&script).map_err(|_| gen_err())? {
+            return Ok(true);
+        }
+        self.wallet
+            .sync(log_progress(), None)
+            .map_err(|_| gen_err())?;
+        self.wallet.is_mine(&script).map_err(|_| gen_err())
+    }
+
+    fn balance_address(
+        &self,
+        addr: &str,
+        from_height: Option<usize>,
+    ) -> Result<HashMap<String, u64>, simple_server::Error> {
+        let list = self.check_address(addr, from_height)?;
+        let mut balances = HashMap::new();
+
+        let amount = match list.last() {
+            None => 0,
+            Some(unspent) => {
+                if unspent.height < from_height.unwrap_or(0) {
+                    0
+                } else {
+                    unspent.value
+                }
+            }
+        };
+        balances.insert("btc".to_string(), amount);
+        Ok(balances)
     }
 
     fn network(&self) -> Result<String, bdk::Error> {
