@@ -16,13 +16,19 @@ use crate::config::{ConfigOpts, Platforms};
 use crate::liquidwallet::LiquidWallet;
 
 use ini::Ini;
+use std::env;
 use structopt::StructOpt;
 
 fn main() {
     env_logger::init();
 
     // Read configuration file to env if it exists, ignore otherwise
-    let _ = Ini::load_from_file("config.ini").map(config::load_ini_to_env);
+    let args: Vec<String> = env::args().collect();
+    let config_file = match args.iter().position(|x| x == "--config") {
+        Some(i) => &args[i + 1],
+        None => "config.ini",
+    };
+    let _ = Ini::load_from_file(config_file).map(config::load_ini_to_env);
 
     // Read env and commandline args
     let conf: ConfigOpts = ConfigOpts::from_args();

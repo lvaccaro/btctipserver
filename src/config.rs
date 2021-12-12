@@ -30,6 +30,15 @@ pub struct ConfigOpts {
         default_value = "8080"
     )]
     pub port: u16,
+    /// Server port
+    #[structopt(
+        name = "CONFIG",
+        env = "CONFIG",
+        short = "c",
+        long = "config",
+        default_value = "config.ini"
+    )]
+    pub config: String,
     #[structopt(subcommand)]
     pub cmd: Platforms,
 }
@@ -232,6 +241,7 @@ mod test {
         let expected_config_opts = ConfigOpts {
             host: "0.0.0.0".to_string(),
             port: 8080,
+            config: "config.ini".to_string(),
             cmd: Platforms::Bitcoin( BitcoinOpts {
                 data_dir: ".bdk-bitcoin".to_string(),
                 network: Network::Bitcoin,
@@ -273,6 +283,7 @@ mod test {
         let expected_config_opts = ConfigOpts {
             host: "0.0.0.0".to_string(),
             port: 8080,
+            config: "config.ini".to_string(),
             cmd: Platforms::Bitcoin( BitcoinOpts {
                 data_dir: ".bdk-bitcoin".to_string(),
                 network: Network::Bitcoin,
