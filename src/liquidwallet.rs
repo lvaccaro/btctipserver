@@ -22,7 +22,7 @@ pub struct LiquidWallet {
 impl LiquidWallet {
     pub fn new(opts: &LiquidOpts) -> Result<Self, Error> {
         // setup database
-        let database = sled::open(Wallet::prepare_home_dir(&opts.data_dir).to_str().unwrap())?;
+        let database = sled::open(<dyn Wallet>::prepare_home_dir(&opts.data_dir).to_str().unwrap())?;
         let tree = database.open_tree(&opts.wallet)?;
 
         // setup electrum blockchain client
@@ -61,7 +61,7 @@ impl Wallet for LiquidWallet {
     fn balance_address(
         &self,
         addr: &str,
-        from_height: Option<usize>,
+        _from_height: Option<usize>,
     ) -> Result<HashMap<String, u64>, simple_server::Error> {
         let addr = Address::from_str(addr).map_err(|_| gen_err())?;
         let mut balances = HashMap::new();

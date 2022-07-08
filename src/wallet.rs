@@ -16,7 +16,7 @@ pub trait Wallet: Send {
     fn network(&self) -> Result<String, bdk::Error>;
 }
 
-impl Wallet {
+impl dyn Wallet {
     pub fn prepare_home_dir(datadir: &str) -> PathBuf {
         let mut dir = PathBuf::new();
         dir.push(&dirs_next::home_dir().unwrap());

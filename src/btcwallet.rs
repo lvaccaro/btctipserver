@@ -22,7 +22,7 @@ pub struct BTCWallet {
 impl BTCWallet {
     pub fn new(conf: &BitcoinOpts) -> Result<Self, Error> {
         // setup database
-        let database = sled::open(Wallet::prepare_home_dir(&conf.data_dir).to_str().unwrap())?;
+        let database = sled::open(<dyn Wallet>::prepare_home_dir(&conf.data_dir).to_str().unwrap())?;
         let tree = database.open_tree(&conf.wallet)?;
 
         // setup electrum blockchain client
