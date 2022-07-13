@@ -23,23 +23,27 @@ pub fn create_server(wallet: impl Wallet + 'static) -> Server {
         for (key, value) in request.headers() {
             debug!("{}: {}", key, value.to_str().unwrap_or("can't map to str"));
         }
-        let wallet_lock = wallet_mutex.lock().unwrap();
+        let mut wallet_lock = wallet_mutex.lock().unwrap();
         match (request.method(), request.uri().path()) {
             (&Method::GET, "/") => {
                 if request.uri().query().is_none() {
-                    match redirect(wallet_lock) {
-                        Ok(txt) => Ok(response.body(txt.as_bytes().to_vec())?),
-                        Err(_e) => Ok(response.body(not_found().as_bytes().to_vec())?),
-                    }
+                    let html = match redirect(&mut wallet_lock) {
+                        Ok(txt) => txt,
+                        Err(_e) => not_found(),
+                    };
+                    drop(wallet_lock);
+                    Ok(response.body(html.as_bytes().to_vec())?)
                 } else {
-                    let network = wallet_lock.network().unwrap();
-                    match page(wallet_lock, network.as_str(), request.uri()) {
-                        Ok(txt) => Ok(response.body(txt.as_bytes().to_vec())?),
-                        Err(_e) => Ok(response.body(not_found().as_bytes().to_vec())?),
-                    }
+                    let html = match page(&mut wallet_lock, request.uri()) {
+                        Ok(txt) => txt,
+                        Err(_e) => not_found(),
+                    };
+                    drop(wallet_lock);
+                    Ok(response.body(html.as_bytes().to_vec())?)
                 }
             }
             (_, _) => {
+                drop(wallet_lock);
                 response.status(StatusCode::NOT_FOUND);
                 Ok(response.body(not_found().as_bytes().to_vec())?)
             }
@@ -47,17 +51,19 @@ pub fn create_server(wallet: impl Wallet + 'static) -> Server {
     })
 }
 
-pub fn redirect(wallet: MutexGuard<impl Wallet>) -> Result<String, simple_server::Error> {
+pub fn redirect(
+    wallet: &mut MutexGuard<impl Wallet>,
+) -> Result<String, simple_server::Error> {
     let address = wallet.last_unused_address().map_err(|_| gen_err())?;
     let link = format!("/?{}", address);
     html::redirect(link.as_str()).map_err(|_| gen_err())
 }
 
 pub fn page(
-    wallet: MutexGuard<impl Wallet>,
-    network: &str,
+    wallet: &mut MutexGuard<impl Wallet>,
     uri: &Uri,
 ) -> Result<String, simple_server::Error> {
+    let network = wallet.network().unwrap();
     let address = uri.query().unwrap();
     let mine = wallet.is_my_address(address).map_err(|_| gen_err())?;
     if !mine {
@@ -77,5 +83,5 @@ pub fn page(
         true => "No tx found yet".to_string(),
         _ => results,
     };
-    html::page(network, address, txt.as_str())
+    html::page(network.as_str(), address, txt.as_str())
 }

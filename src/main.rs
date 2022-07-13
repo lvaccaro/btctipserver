@@ -1,5 +1,6 @@
 mod btcwallet;
 mod config;
+mod clightning;
 mod error;
 mod html;
 mod liquidwallet;
@@ -14,6 +15,7 @@ extern crate http;
 use crate::btcwallet::BTCWallet;
 use crate::config::{ConfigOpts, Platforms};
 use crate::liquidwallet::LiquidWallet;
+use crate::clightning::ClightningWallet;
 
 use ini::Ini;
 use std::env;
@@ -39,6 +41,10 @@ fn main() {
         }
         Platforms::Liquid(opts) => {
             let wallet = LiquidWallet::new(&opts).unwrap();
+            server::create_server(wallet)
+        }
+        Platforms::CLightning(opts) => {
+            let wallet = ClightningWallet::new(&opts).unwrap();
             server::create_server(wallet)
         }
     };

@@ -72,7 +72,7 @@ impl BTCWallet {
 }
 
 impl Wallet for BTCWallet {
-    fn last_unused_address(&self) -> Result<String, simple_server::Error> {
+    fn last_unused_address(&mut self) -> Result<String, simple_server::Error> {
         self.wallet
             .sync(log_progress(), None)
             .map_err(|_| gen_err())?;
@@ -84,7 +84,7 @@ impl Wallet for BTCWallet {
             .to_string())
     }
 
-    fn is_my_address(&self, addr: &str) -> Result<bool, simple_server::Error> {
+    fn is_my_address(&mut self, addr: &str) -> Result<bool, simple_server::Error> {
         let script = Address::from_str(addr)
             .map_err(|_| gen_err())?
             .script_pubkey();
@@ -98,7 +98,7 @@ impl Wallet for BTCWallet {
     }
 
     fn balance_address(
-        &self,
+        &mut self,
         addr: &str,
         from_height: Option<usize>,
     ) -> Result<HashMap<String, u64>, simple_server::Error> {
@@ -119,7 +119,7 @@ impl Wallet for BTCWallet {
         Ok(balances)
     }
 
-    fn network(&self) -> Result<String, bdk::Error> {
+    fn network(&mut self) -> Result<String, bdk::Error> {
         Ok(self.wallet.network().to_string())
     }
 }

@@ -48,18 +48,18 @@ impl LiquidWallet {
 }
 
 impl Wallet for LiquidWallet {
-    fn last_unused_address(&self) -> Result<String, simple_server::Error> {
+    fn last_unused_address(&mut self) -> Result<String, simple_server::Error> {
         let address = self.wallet.get_new_address().map_err(|_| gen_err())?;
         Ok(address.to_string())
     }
 
-    fn is_my_address(&self, addr: &str) -> Result<bool, simple_server::Error> {
+    fn is_my_address(&mut self, addr: &str) -> Result<bool, simple_server::Error> {
         let address = Address::from_str(addr).map_err(|_| gen_err())?;
         self.wallet.is_mine_address(&address).map_err(|_| gen_err())
     }
 
     fn balance_address(
-        &self,
+        &mut self,
         addr: &str,
         _from_height: Option<usize>,
     ) -> Result<HashMap<String, u64>, simple_server::Error> {
@@ -77,7 +77,7 @@ impl Wallet for LiquidWallet {
         Ok(balances)
     }
 
-    fn network(&self) -> Result<String, bdk::Error> {
+    fn network(&mut self) -> Result<String, bdk::Error> {
         match self.wallet.network() {
             &edk::miniscript::elements::AddressParams::LIQUID => Ok("liquid".to_string()),
             _ => Ok("elements".to_string()),

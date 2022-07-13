@@ -23,7 +23,7 @@ fn inner_network(network: &str) -> Markup {
     let network = network.to_lowercase();
     let partial = html! {
         div.d-flex.align-items-center."text-white-50".rounded.box-shadow."p-3"."my-3"
-        .bg-black
+        .bg-orange
         .bg-teal[network == "liquid"]
         .bg-gray[network == "elements"]
         .bg-orange[network == "bitcoin"]
@@ -130,6 +130,7 @@ pub fn page(network: &str, address: &str, status: &str) -> Result<String, simple
     let address_link = address_link(network, address)?;
     let address_qr = address_qr(network, address)?;
     let qr = create_bmp_base64_qr(&address_qr).map_err(|_| gen_err())?;
+    println!("{}",network);
 
     let html = html! {
         (DOCTYPE)

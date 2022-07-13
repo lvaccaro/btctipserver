@@ -3,17 +3,17 @@ use std::fs;
 use std::path::PathBuf;
 
 pub trait Wallet: Send {
-    fn last_unused_address(&self) -> Result<String, simple_server::Error>;
+    fn last_unused_address(&mut self) -> Result<String, simple_server::Error>;
 
-    fn is_my_address(&self, addr: &str) -> Result<bool, simple_server::Error>;
+    fn is_my_address(&mut self, addr: &str) -> Result<bool, simple_server::Error>;
 
     fn balance_address(
-        &self,
+        &mut self,
         addr: &str,
         from_height: Option<usize>,
     ) -> Result<HashMap<String, u64>, simple_server::Error>;
 
-    fn network(&self) -> Result<String, bdk::Error>;
+    fn network(&mut self) -> Result<String, bdk::Error>;
 }
 
 impl dyn Wallet {
