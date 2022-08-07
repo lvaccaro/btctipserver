@@ -1,11 +1,16 @@
 BTCTipServer
 ===
-Another Bitcoin payment service, based on [bdk](https://github.com/bitcoindevkit/bdk) and [electrum](https://github.com/bitcoindevkit/rust-electrum-client).
+BTCTip Server is a self-hosted, open-source bitcoin payment processor. 
+:smile:
+- written in rust :crab: 
+- [:crab:]
+Another Bitcoin payment service, based on [bdk](https://github.com/bitcoindevkit/bdk) and [electrum](https://github.com/bitcoindevkit/rust-electrum-client) with lightning support written in rust.
+
+*** Keep fund safe 
 
 [![build](https://github.com/lvaccaro/btctipserver/workflows/ci/badge.svg)](https://github.com/lvaccaro/btctipserver/actions)
 [![MIT license](https://img.shields.io/github/license/lvaccaro/btctipserver)](https://github.com/lvaccaro/btctipserver/blob/master/LICENSE)
-[![bdk](https://raw.githubusercontent.com/bitcoindevkit/bitcoindevkit.org/master/static/badge/bitcoin-dev-kit.svg)](https://github.com/bitcoindevkit/bdk)
-
+[![bdk](https://raw.githubusercontent.com/bitcoindevkit/bitcoindevkit.org/master/static/bdk.svg)](https://github.com/bitcoindevkit/bdk)
 [![crates.io](https://img.shields.io/crates/v/btctipserver.svg)](https://crates.io/crates/btctipserver)
 
 ### Get it start
