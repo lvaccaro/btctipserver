@@ -794,7 +794,7 @@ dependencies = [
 [[package]]
 name = "lnsocket"
 version = "0.1.0"
-source = "git+https://github.com/lvaccaro/lnsocket.git?branch=rust_updates#7d2509974beb9e10a09bee211a59ec0599eff5e8"
+source = "git+https://github.com/jb55/lnsocket.git#93307d1bfe4c9700649c5a4c04620611be6c67e7"
 dependencies = [
  "bindgen",
  "cc",
