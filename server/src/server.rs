@@ -2,11 +2,10 @@ use http::Uri;
 use simple_server::{Method, Server, StatusCode};
 use std::sync::{Arc, Mutex};
 
-use crate::html;
+use crate::{html, wallet};
 use crate::html::not_found;
-use crate::wallet::Wallet;
 use std::io;
-use std::sync::MutexGuard;
+use wallet::Wallet;
 
 /// Returns a generic simple_server::Error, used to catch errors to prevent tearing
 /// down the server with a simple request, should be removed in favor of specific errors
@@ -14,7 +13,7 @@ pub fn gen_err() -> simple_server::Error {
     simple_server::Error::Io(io::Error::new(io::ErrorKind::Other, "oh no!"))
 }
 
-pub fn create_server(wallet: impl Wallet + 'static) -> Server {
+pub fn create_server(wallet: Wallet) -> Server {
     let wallet_mutex = Arc::new(Mutex::new(wallet));
     Server::new(move |request, mut response| {
         debug!("Request: {} {}", request.method(), request.uri());
@@ -52,20 +51,20 @@ pub fn create_server(wallet: impl Wallet + 'static) -> Server {
 }
 
 pub fn redirect(
-    wallet: &mut MutexGuard<impl Wallet>,
+    wallet: &mut Wallet
 ) -> Result<String, simple_server::Error> {
-    let address = wallet.last_unused_address().map_err(|_| gen_err())?;
+    let address = wallet.last_unused_address()?;
     let link = format!("/?{}", address);
     html::redirect(link.as_str()).map_err(|_| gen_err())
 }
 
 pub fn page(
-    wallet: &mut MutexGuard<impl Wallet>,
+    wallet: &mut Wallet,
     uri: &Uri,
 ) -> Result<String, simple_server::Error> {
-    let network = wallet.network().unwrap();
+    let network = wallet.network()?;
     let address = uri.query().unwrap();
-    let mine = wallet.is_my_address(address).map_err(|_| gen_err())?;
+    let mine = wallet.is_my_address(address)?;
     if !mine {
         return Ok(format!("Address {} is not mine", address));
     }

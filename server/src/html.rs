@@ -1,11 +1,11 @@
-use bdk::bitcoin::Address;
+use btctipserver_bitcoin::bdk::bitcoin::Address;
 use maud::{html, Markup, DOCTYPE};
 use qr_code::bmp_monochrome::BmpError;
 use qr_code::QrCode;
 use std::io::Cursor;
 use std::str::FromStr;
 
-const CSS: &str = include_str!("../assets/index.css");
+const CSS: &str = include_str!("../../assets/index.css");
 
 fn inner_header() -> Markup {
     let header = html! {

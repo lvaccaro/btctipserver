@@ -1,9 +1,5 @@
-mod btcwallet;
 mod config;
-mod clightning;
-mod error;
 mod html;
-mod liquidwallet;
 mod server;
 mod wallet;
 
@@ -12,10 +8,12 @@ extern crate log;
 extern crate hex;
 extern crate http;
 
-use crate::btcwallet::BTCWallet;
+use btctipserver_bitcoin::BTCWallet;
+use btctipserver_lightning::ClightningWallet;
+use btctipserver_liquid::LiquidWallet;
+
 use crate::config::{ConfigOpts, Platforms};
-use crate::liquidwallet::LiquidWallet;
-use crate::clightning::ClightningWallet;
+use crate::wallet::Wallet;
 
 use ini::Ini;
 use std::env;
@@ -34,23 +32,21 @@ fn main() {
 
     // Read env and commandline args
     let conf: ConfigOpts = ConfigOpts::from_args();
-    let server = match conf.cmd {
+    let wallet = match conf.cmd {
         Platforms::Bitcoin(opts) => {
-            let wallet = BTCWallet::new(&opts).unwrap();
-            server::create_server(wallet)
+            Wallet::BTCWallet(BTCWallet::new(&opts).unwrap())
         }
         Platforms::Liquid(opts) => {
-            let wallet = LiquidWallet::new(&opts).unwrap();
-            server::create_server(wallet)
+            Wallet::LiquidWallet(LiquidWallet::new(&opts).unwrap())
         }
         Platforms::CLightning(opts) => {
-            let wallet = ClightningWallet::new(&opts).unwrap();
-            server::create_server(wallet)
+            Wallet::ClightningWallet(ClightningWallet::new(&opts).unwrap())
         }
     };
 
     // Start server
     let host = conf.host.clone();
     let port = conf.port.clone().to_string();
+    let server = server::create_server(wallet);
     server.listen(&host, &port);
 }
