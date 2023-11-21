@@ -48,7 +48,6 @@ impl BTCWallet {
 
     pub fn new(conf: &BitcoinOpts) -> Result<Self, bdk::Error> {
         // setup database
-        env_logger::init();
         let database = sled::open(Self::prepare_home_dir(&conf.data_dir).to_str().unwrap())?;
         let tree = database.open_tree(&conf.wallet)?;
 
