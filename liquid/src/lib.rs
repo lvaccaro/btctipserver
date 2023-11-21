@@ -1,28 +1,53 @@
-use crate::config::LiquidOpts;
-use crate::error::Error;
-use crate::server::gen_err;
-use crate::wallet::Wallet;
+pub mod config;
 
+pub extern crate edk;
+extern crate log;
+extern crate hex;
+extern crate http;
+extern crate ini;
+extern crate structopt;
+
+use crate::config::LiquidOpts;
 use std::collections::HashMap;
 use std::str::FromStr;
-
+use edk::bdk::Error;
 use edk::bdk::electrum_client::Client;
 
-use bdk::sled::{self, Tree};
+use edk::bdk::sled::{self, Tree};
 use edk::miniscript::elements::secp256k1_zkp;
 use edk::miniscript::elements::slip77::MasterBlindingKey;
 use edk::miniscript::elements::Address;
 use edk::miniscript::{Descriptor, DescriptorPublicKey};
-use hex;
+use std::fs;
+use std::path::PathBuf;
 
 pub struct LiquidWallet {
     wallet: edk::Wallet<Tree>,
 }
 
+pub fn gen_err() -> Error {
+    Error::Generic(format!("oh no!"))
+}
+
 impl LiquidWallet {
+
+    pub fn prepare_home_dir(datadir: &str) -> PathBuf {
+        let mut dir = PathBuf::new();
+        dir.push(&dirs_next::home_dir().unwrap());
+        dir.push(datadir);
+
+        if !dir.exists() {
+            //info!("Creating home directory {}", dir.as_path().display());
+            fs::create_dir(&dir).unwrap();
+        }
+
+        dir.push("database.sled");
+        dir
+    }
+
     pub fn new(opts: &LiquidOpts) -> Result<Self, Error> {
         // setup database
-        let database = sled::open(<dyn Wallet>::prepare_home_dir(&opts.data_dir).to_str().unwrap())?;
+        let database = sled::open(Self::prepare_home_dir(&opts.data_dir).to_str().unwrap())?;
         let tree = database.open_tree(&opts.wallet)?;
 
         // setup electrum blockchain client
@@ -47,22 +72,22 @@ impl LiquidWallet {
     }
 }
 
-impl Wallet for LiquidWallet {
-    fn last_unused_address(&mut self) -> Result<String, simple_server::Error> {
+impl LiquidWallet {
+    pub fn last_unused_address(&mut self) -> Result<String, Error> {
         let address = self.wallet.get_new_address().map_err(|_| gen_err())?;
         Ok(address.to_string())
     }
 
-    fn is_my_address(&mut self, addr: &str) -> Result<bool, simple_server::Error> {
+    pub fn is_my_address(&mut self, addr: &str) -> Result<bool, Error> {
         let address = Address::from_str(addr).map_err(|_| gen_err())?;
         self.wallet.is_mine_address(&address).map_err(|_| gen_err())
     }
 
-    fn balance_address(
+    pub fn balance_address(
         &mut self,
         addr: &str,
         _from_height: Option<usize>,
-    ) -> Result<HashMap<String, u64>, simple_server::Error> {
+    ) -> Result<HashMap<String, u64>, Error> {
         let addr = Address::from_str(addr).map_err(|_| gen_err())?;
         let mut balances = HashMap::new();
         for unblind in self
@@ -77,7 +102,7 @@ impl Wallet for LiquidWallet {
         Ok(balances)
     }
 
-    fn network(&mut self) -> Result<String, bdk::Error> {
+    pub fn network(&mut self) -> Result<String, Error> {
         match self.wallet.network() {
             &edk::miniscript::elements::AddressParams::LIQUID => Ok("liquid".to_string()),
             _ => Ok("elements".to_string()),
