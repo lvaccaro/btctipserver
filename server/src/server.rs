@@ -4,10 +4,8 @@ use uriparse;
 use std::convert::TryFrom;
 
 use crate::{html, wallet};
-use crate::html::not_found;
+use crate::html::{not_found, Page};
 use wallet::{Wallet, Error, gen_err};
-
-use btctipserver_bitcoin::BTCWallet;
 
 pub fn run_server(url: &str, wallet: Wallet) {
     let wallet_mutex = Arc::new(Mutex::new(wallet));
@@ -63,30 +61,30 @@ pub fn page(
     wallet: &mut Wallet,
     uri: &str,
 ) -> Result<String, Error> {
-    let network = wallet.network()?;
-    let mut address = uri;
-
-    BTCWallet::Bip21::parse(uri).unwrap();
-
-
-    Bip21::parse("bitcoin:2NDxuABdg2uqk9MouV6f53acAwaY2GwKVHK")
-    let address = match parsed.query().unwrap() {
-        
+    let mut page = Page {
+        network: wallet.network()?,
+        url: format!("{}", uri),
+        address: format!("{}", uri),
+        ..Default::default() 
     };
 
-
-
-    if parsed.query().unwrap().starts_with(wallet.schema()) {
-        address =  Bip21::parse("bitcoin:2NDxuABdg2uqk9MouV6f53acAwaY2GwKVHK").unwrap();
-    } 
-
-    let address = uri;
-    let mine = wallet.is_my_address(address)?;
+    if uri.starts_with(wallet.schema()) {
+        println!("{}",wallet.schema());
+        if let Ok(bip21) = btctipserver_bitcoin::bip21::Bip21::parse(uri) {
+            page.address = bip21.address.to_string();
+            if let Some(amount) = bip21.amount {
+                page.amount = Some(amount.as_sat().to_string());
+            }
+            page.label = bip21.label;
+            page.label = bip21.message;
+        }
+    }
+    let mine = wallet.is_my_address(page.address.as_str())?;
     if !mine {
-        return Ok(format!("Address {} is not mine", address));
+        return Ok(format!("Address {} is not mine", page.address));
     }
     let results = wallet
-        .balance_address(&address, Option::from(0))
+        .balance_address(&page.address, Option::from(0))
         .map_err(|_| gen_err())?
         .into_iter()
         .filter(|(_, v)| *v > 0)
@@ -95,9 +93,9 @@ pub fn page(
         .collect::<Vec<String>>()
         .join(", ");
 
-    let txt = match results.is_empty() {
-        true => "No tx found yet".to_string(),
-        _ => results,
+    page.status = match results.is_empty() {
+        true => Some("No tx found yet".to_string()),
+        _ => Some(results),
     };
-    html::page(network.as_str(), address, txt.as_str())
+    html::render(page)
 }

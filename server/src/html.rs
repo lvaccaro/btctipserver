@@ -8,6 +8,17 @@ use std::str::FromStr;
 use crate::wallet;
 use wallet::{Error, gen_err};
 
+#[derive(Default)]
+pub struct Page {
+    pub url: String,
+    pub network: String,
+    pub address: String,
+    pub amount: Option<String>,
+    pub label: Option<String>,
+    pub message: Option<String>,
+    pub status: Option<String>,
+}
+
 const CSS2: &str = include_str!("../../assets/css/style.css");
 const CSS1: &str = include_str!("../../assets/css/styles.css");
 
@@ -29,22 +40,11 @@ fn inner_header(title: &str) -> Markup {
     return header
 }
 
-fn inner_address(address: &str) -> Markup {
+fn inner_section(text: &str) -> Markup {
     let partial = html! {
         div class="media text-muted pt-3" {
             p class="media-body pb-3 mb-0 small lh-125 border-bottom border-gray" {
-                span { (address) }
-            }
-        }
-    };
-    partial
-}
-
-fn inner_status(status: &str) -> Markup {
-    let partial = html! {
-        div class="media text-muted pt-3" {
-            p class="media-body pb-3 mb-0 small lh-125 border-bottom border-gray" {
-                span { (status) }
+                span { (text) }
             }
         }
     };
@@ -107,12 +107,11 @@ fn address_qr(network: &str, address: &str) -> Result<String, Error> {
     }
 }
 
-pub fn page(network: &str, address: &str, status: &str) -> Result<String, Error> {
-    let meta_http_content = format!("{}; URL=/?{}", 10, address);
-    let address_link = address_link(network, address)?;
-    let address_qr = address_qr(network, address)?;
+pub fn render(page: Page) -> Result<String, Error> {
+    let meta_http_content = format!("{}; URL=/?{}", 10, page.url);
+    let address_link = address_link(page.network.as_str(), page.address.as_str())?;
+    let address_qr = address_qr(page.network.as_str(), page.address.as_str())?;
     let qr = create_bmp_base64_qr(&address_qr).map_err(|_| gen_err())?;
-    println!("{}",network);
 
     let html = html! {
         (DOCTYPE)
@@ -121,13 +120,13 @@ pub fn page(network: &str, address: &str, status: &str) -> Result<String, Error>
                 meta charset="UTF-8";
                 meta name="robots" content="noindex";
                 meta http-equiv="Refresh" content=(meta_http_content);
-                title { (address) }
+                title { (page.address) }
                 style { (CSS1) }
                 style { (CSS2) }
             }
             body {
                 div.container.center.headings--one-size {
-                    (inner_header(network))
+                    (inner_header(page.network.as_str()))
                     div.content {
                         div.index-content {
 
@@ -135,11 +134,21 @@ pub fn page(network: &str, address: &str, status: &str) -> Result<String, Error>
                                 div class="center" {
                                     img class="qr" src=(qr) { }
                                     br { }
-                                    (inner_address(address))
+                                    (inner_section(page.address.as_str()))
                                 }
                             }
-
-                            (inner_status(status))
+                            @if let Some(amount) = &page.amount {
+                                (inner_section(format!("Amount {} sats", amount.to_string().as_str()).as_str()))
+                            }
+                            @if let Some(label) = &page.label {
+                                (inner_section(format!("Label {}", label.to_string().as_str()).as_str()))
+                            }
+                            @if let Some(message) = &page.message {
+                                (inner_section(format!("Message {}", message.to_string().as_str()).as_str()))
+                            }
+                            @if let Some(status) = &page.status {
+                                (inner_section(format!("{}", status.to_string().as_str()).as_str()))
+                            }
                             a href=(address_link) { "Open in wallet app" }
                         }
                     }

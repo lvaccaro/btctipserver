@@ -1,8 +1,10 @@
 pub mod config;
+pub mod bip21;
 
 pub extern crate bdk;
-extern crate ini;
 extern crate structopt;
+extern crate percent_encoding;
+extern crate url;
 
 use bdk::bitcoin::Address;
 use bdk::blockchain::{
