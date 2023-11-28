@@ -26,7 +26,7 @@ If you will be configuring your server via command line args or environment vari
 changes to the project are needed. If you would like to configure your wallet parameters in a
 `config.ini` file then see `config_example.ini` as example.
 ```
-btctipserver -c config.ini bitcoin
+btctipserver -c bitcoin/config.ini bitcoin
 ```
 
 ### Liquid
