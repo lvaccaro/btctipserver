@@ -4,14 +4,8 @@ version = "0.1.1-dev"
 
 [dependencies]
 lnsocket = { git = "https://github.com/lvaccaro/lnsocket.git", rev = "34762a9750bfb45aa7c59474d720bf3efa1a10cf" }
-log = "0.4.0"
-env_logger = "0.8.2"
 serde_json = { version = "^1.0" }
 dirs-next = "2.0.0"
-rust-ini = "0.16"
 structopt = "0.3"
-base64 = "0.13.0"
-http = "0.1.0"
-hex = "0.4"
 random-string = "1.0.0"
 secp256k1-sys = "=0.4.1"

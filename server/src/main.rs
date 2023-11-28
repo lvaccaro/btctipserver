@@ -3,9 +3,6 @@ mod html;
 mod server;
 mod wallet;
 
-extern crate hex;
-extern crate http;
-
 use btctipserver_bitcoin::BTCWallet;
 use btctipserver_lightning::ClightningWallet;
 use btctipserver_liquid::LiquidWallet;

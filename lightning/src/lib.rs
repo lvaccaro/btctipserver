@@ -1,10 +1,6 @@
 pub mod config;
 
 pub extern crate lnsocket;
-extern crate log;
-extern crate hex;
-extern crate http;
-extern crate ini;
 extern crate structopt;
 extern crate serde_json;
 

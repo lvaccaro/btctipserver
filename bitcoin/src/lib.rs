@@ -1,9 +1,6 @@
 pub mod config;
 
 pub extern crate bdk;
-extern crate log;
-extern crate hex;
-extern crate http;
 extern crate ini;
 extern crate structopt;
 
