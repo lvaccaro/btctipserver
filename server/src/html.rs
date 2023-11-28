@@ -8,46 +8,31 @@ use std::str::FromStr;
 use crate::wallet;
 use wallet::{Error, gen_err};
 
-const CSS: &str = include_str!("../../assets/index.css");
+const CSS2: &str = include_str!("../../assets/css/style.css");
+const CSS1: &str = include_str!("../../assets/css/styles.css");
 
-fn inner_header() -> Markup {
+
+fn inner_header(title: &str) -> Markup {
     let header = html! {
-        nav.navbar.navbar-expand-lg.fixed-top.navbar-dark.bg-dark {
-            a.navbar-brand href="#" { "BTC Tip Server" }
-            a.navbar-brand href="https://github.com/lvaccaro/btctipserver" {
-                i.bi.bi-github role="img" aria-label="GitHub" {}
+            header.header {
+                div.header__inner {
+                    div.header__logo {
+                        a href="//" {
+                            div.logo {
+                              (title)
+                            }
+                        }
+                    }
+                }
             }
-        }
     };
-    header
-}
-
-fn inner_network(network: &str) -> Markup {
-    let network = network.to_lowercase();
-    let partial = html! {
-        div.d-flex.align-items-center."text-white-50".rounded.box-shadow."p-3"."my-3"
-        .bg-orange
-        .bg-teal[network == "liquid"]
-        .bg-gray[network == "elements"]
-        .bg-orange[network == "bitcoin"]
-        .bg-purple[network == "testnet"]
-        .bg-blue[network == "regtest"]
-        .bg-red[network == "signet"] {
-            div class="lh-100" {
-                h6 class="mb-0 text-white lh-100" { (network) }
-            }
-        }
-    };
-    partial
+    return header
 }
 
 fn inner_address(address: &str) -> Markup {
     let partial = html! {
         div class="media text-muted pt-3" {
             p class="media-body pb-3 mb-0 small lh-125 border-bottom border-gray" {
-                strong class="d-block text-gray-dark" {
-                    "Address"
-                }
                 span { (address) }
             }
         }
@@ -59,9 +44,6 @@ fn inner_status(status: &str) -> Markup {
     let partial = html! {
         div class="media text-muted pt-3" {
             p class="media-body pb-3 mb-0 small lh-125 border-bottom border-gray" {
-                strong class="d-block text-gray-dark" {
-                    "Status"
-                }
                 span { (status) }
             }
         }
@@ -140,34 +122,28 @@ pub fn page(network: &str, address: &str, status: &str) -> Result<String, Error>
                 meta name="robots" content="noindex";
                 meta http-equiv="Refresh" content=(meta_http_content);
                 title { (address) }
-                link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.4.1/css/bootstrap.min.css" integrity="sha384-Vkoo8x4CGsO3+Hhxv8T/Q5PaXtkKtu6ug5TOeNV6gBiFeWPGFN9MuhOf23Q9Ifjh" crossorigin="anonymous" {}
-                link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.4.0/font/bootstrap-icons.css" {}
-                style { (CSS) }
+                style { (CSS1) }
+                style { (CSS2) }
             }
             body {
-                (inner_header())
-                main role="main" class="container" {
-                    (inner_network(network))
-                    div class="my-3 p-3 bg-white rounded box-shadow" {
-                        (inner_address(address))
-                        (inner_status(status))
-                        small class="d-block text-right mt-3" {
-                            a href=(address_link) { "Open in wallet" }
-                        }
-                    }
-                    div class="my-3 p-3 bg-white rounded box-shadow" {
-                        div class="d-block text-center mt-3" {
-                            div class="center" {
-                                img class="qr" src=(qr) { }
+                div.container.center.headings--one-size {
+                    (inner_header(network))
+                    div.content {
+                        div.index-content {
+
+                            div.framed.framed-paragraph {
+                                div class="center" {
+                                    img class="qr" src=(qr) { }
+                                    br { }
+                                    (inner_address(address))
+                                }
                             }
-                        }
-                        small class="d-block text-right mt-3" {
-                            a href="/" { "Get unused address" }
+
+                            (inner_status(status))
+                            a href=(address_link) { "Open in wallet app" }
                         }
                     }
                 }
-                script src="https://code.jquery.com/jquery-3.4.1.slim.min.js" integrity="sha384-J6qa4849blE2+poT4WnyKhv5vZF5SrPo0iEjwBvKU7imGFAV0wwj1yYfoRSJoZ+n" crossorigin="anonymous" {}
-                script src="https://stackpath.bootstrapcdn.com/bootstrap/4.4.1/js/bootstrap.min.js" integrity="sha384-wfSDF2E50Y2D1uUdj0O3uMBJnjuUD4Ih7YwaYd1iqfktj0Uod8GCExl3Og8ifwB6" crossorigin="anonymous" {}
             }
         }
     };

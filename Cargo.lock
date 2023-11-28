@@ -115,6 +115,12 @@ dependencies = [
 ]
 
 [[package]]
+name = "base64"
+version = "0.13.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "9e1b586273c5702936fe7b7d6896644d8be71e6314cfe09d3167c95f712589e8"
+
+[[package]]
 name = "base64-compat"
 version = "1.0.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -308,6 +314,7 @@ checksum = "829a082bd3761fde7476dc2ed85ca56c11628948460ece621e4f56fef5046567"
 name = "btctipserver"
 version = "0.1.1-dev"
 dependencies = [
+ "base64 0.13.1",
  "btctipserver-bitcoin",
  "btctipserver-lightning",
  "btctipserver-liquid",
@@ -329,8 +336,10 @@ dependencies = [
  "bdk 0.13.0",
  "bdk-macros 0.6.0",
  "dirs-next",
+ "percent-encoding",
  "rust-ini",
  "structopt",
+ "url",
 ]
 
 [[package]]
@@ -1500,7 +1509,7 @@ version = "0.16.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "b25a18b1bf7387f0145e7f8324e700805aade3842dd3db2e74e4cdeb4677c09e"
 dependencies = [
- "base64",
+ "base64 0.10.1",
  "log 0.4.20",
  "ring",
  "sct",
@@ -1957,6 +1966,7 @@ dependencies = [
  "form_urlencoded",
  "idna",
  "percent-encoding",
+ "serde 1.0.193",
 ]
 
 [[package]]

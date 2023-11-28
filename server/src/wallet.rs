@@ -55,4 +55,13 @@ impl Wallet {
             Wallet::ClightningWallet(w) => { w.balance_address(addr, _from_height).map_err(|_| gen_err()) }
         }
     }
+
+    pub fn schema(&mut self) -> &str {
+        match self {
+            Wallet::BTCWallet(_) => "bitcoin",
+            Wallet::LiquidWallet(_) => "liquidnetwork",
+            Wallet::ClightningWallet(_) => "lightning",
+        }
+    }
+
 }
