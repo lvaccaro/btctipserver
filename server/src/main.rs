@@ -3,8 +3,6 @@ mod html;
 mod server;
 mod wallet;
 
-#[macro_use]
-extern crate log;
 extern crate hex;
 extern crate http;
 
@@ -47,6 +45,6 @@ fn main() {
     // Start server
     let host = conf.host.clone();
     let port = conf.port.clone().to_string();
-    let server = server::create_server(wallet);
-    server.listen(&host, &port);
+    let url = format!("{}:{}", host, port);
+    server::run_server(url.as_str(), wallet)
 }

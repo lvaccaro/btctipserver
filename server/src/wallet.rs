@@ -2,10 +2,15 @@ use btctipserver_bitcoin::BTCWallet;
 use btctipserver_lightning::ClightningWallet;
 use btctipserver_liquid::LiquidWallet;
 use std::collections::HashMap;
-use std::io;
 
-pub fn gen_err() -> simple_server::Error {
-    simple_server::Error::Io(io::Error::new(io::ErrorKind::Other, "oh no!"))
+/// Errors that can be thrown by the [`Wallet`](crate::wallet::Wallet)
+#[derive(Debug)]
+pub enum Error {
+    Generic(String)
+}
+
+pub fn gen_err() -> Error {
+    Error::Generic(format!("oh no!"))
 }
 
 pub enum Wallet {
@@ -15,7 +20,7 @@ pub enum Wallet {
 }
 impl Wallet {
 
-    pub fn last_unused_address(&mut self) -> Result<String, simple_server::Error> {
+    pub fn last_unused_address(&mut self) -> Result<String, Error> {
         match self {
             Wallet::BTCWallet(w) => { w.last_unused_address().map_err(|_| gen_err()) }
             Wallet::LiquidWallet(w) => { w.last_unused_address().map_err(|_| gen_err()) }
@@ -23,7 +28,7 @@ impl Wallet {
         }        
     }
 
-    pub fn network(&mut self) -> Result<String, simple_server::Error> {
+    pub fn network(&mut self) -> Result<String, Error> {
         match self {
             Wallet::BTCWallet(w) => { w.network().map_err(|_| gen_err()) }
             Wallet::LiquidWallet(w) => { w.network().map_err(|_| gen_err()) }
@@ -31,7 +36,7 @@ impl Wallet {
         }        
     }
 
-    pub fn is_my_address(&mut self, addr: &str) -> Result<bool, simple_server::Error> {
+    pub fn is_my_address(&mut self, addr: &str) -> Result<bool, Error> {
         match self {
             Wallet::BTCWallet(w) => { w.is_my_address(addr).map_err(|_| gen_err()) }
             Wallet::LiquidWallet(w) => { w.is_my_address(addr).map_err(|_| gen_err()) }
@@ -43,7 +48,7 @@ impl Wallet {
         &mut self,
         addr: &str,
         _from_height: Option<usize>,
-    ) -> Result<HashMap<String, u64>, simple_server::Error> {
+    ) -> Result<HashMap<String, u64>, Error> {
         match self {
             Wallet::BTCWallet(w) => { w.balance_address(addr, _from_height).map_err(|_| gen_err()) }
             Wallet::LiquidWallet(w) => { w.balance_address(addr, _from_height).map_err(|_| gen_err()) }

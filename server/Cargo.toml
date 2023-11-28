@@ -16,7 +16,7 @@ readme = "README.md"
 btctipserver-bitcoin = { path = "../bitcoin" }
 btctipserver-lightning = { path = "../lightning" }
 btctipserver-liquid = { path = "../liquid" }
-simple-server = "0.4.0"
+tiny_http = "0.11"
 log = "0.4.0"
 env_logger = "0.8.2"
 serde_json = { version = "^1.0" }
@@ -29,6 +29,7 @@ base64 = "0.13.0"
 http = "0.1.0"
 hex = "0.4"
 random-string = "1.0.0"
+uriparse = "0.6.4"
 
 [[bin]]
 name = "btctipserver"

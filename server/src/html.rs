@@ -5,6 +5,9 @@ use qr_code::QrCode;
 use std::io::Cursor;
 use std::str::FromStr;
 
+use crate::wallet;
+use wallet::{Error, gen_err};
+
 const CSS: &str = include_str!("../../assets/index.css");
 
 fn inner_header() -> Markup {
@@ -86,9 +89,6 @@ pub fn create_bmp_qr(message: &str) -> Result<Vec<u8>, BmpError> {
     Ok(cursor.into_inner())
 }
 
-fn gen_err() -> simple_server::Error {
-    simple_server::Error::Io(std::io::Error::new(std::io::ErrorKind::Other, "bitmap"))
-}
 /// Creates QR containing `message` and encode it in data url
 fn create_bmp_base64_qr(message: &str) -> Result<String, BmpError> {
     let bitmap = create_bmp_qr(message)?;
@@ -112,11 +112,11 @@ pub fn not_found() -> String {
     html.into_string()
 }
 
-fn address_link(network: &str, address: &str) -> Result<String, simple_server::Error> {
+fn address_link(network: &str, address: &str) -> Result<String, Error> {
     Ok(format!("{}:{}", network, address))
 }
 
-fn address_qr(network: &str, address: &str) -> Result<String, simple_server::Error> {
+fn address_qr(network: &str, address: &str) -> Result<String, Error> {
     match network {
         "bitcoin" | "testnet" => Ok(Address::from_str(address)
             .map_err(|_| gen_err())?
@@ -125,7 +125,7 @@ fn address_qr(network: &str, address: &str) -> Result<String, simple_server::Err
     }
 }
 
-pub fn page(network: &str, address: &str, status: &str) -> Result<String, simple_server::Error> {
+pub fn page(network: &str, address: &str, status: &str) -> Result<String, Error> {
     let meta_http_content = format!("{}; URL=/?{}", 10, address);
     let address_link = address_link(network, address)?;
     let address_qr = address_qr(network, address)?;
