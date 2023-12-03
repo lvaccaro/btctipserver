@@ -6,7 +6,7 @@ use std::io::Cursor;
 use std::str::FromStr;
 
 use crate::wallet;
-use wallet::{Error, gen_err};
+use wallet::{gen_err, Error};
 
 #[derive(Default)]
 pub struct Page {
@@ -22,7 +22,6 @@ pub struct Page {
 const CSS2: &str = include_str!("../../assets/css/style.css");
 const CSS1: &str = include_str!("../../assets/css/styles.css");
 
-
 fn inner_header(title: &str) -> Markup {
     let header = html! {
             header.header {
@@ -37,7 +36,7 @@ fn inner_header(title: &str) -> Markup {
                 }
             }
     };
-    return header
+    return header;
 }
 
 fn inner_section(text: &str) -> Markup {

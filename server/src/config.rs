@@ -67,11 +67,11 @@ pub(crate) fn load_ini_to_env(ini: Ini) {
 #[cfg(test)]
 mod test {
 
-    use btctipserver_bitcoin::config::{BitcoinOpts, ElectrumOpts};
     use super::ConfigOpts;
     use crate::config::load_ini_to_env;
     use crate::config::Platforms;
     use btctipserver_bitcoin::bdk::bitcoin::Network;
+    use btctipserver_bitcoin::config::{BitcoinOpts, ElectrumOpts};
     use ini::Ini;
     use structopt;
     use structopt::StructOpt;

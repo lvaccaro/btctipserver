@@ -1,9 +1,9 @@
-pub mod config;
 pub mod bip21;
+pub mod config;
 
 pub extern crate bdk;
-extern crate structopt;
 extern crate percent_encoding;
+extern crate structopt;
 extern crate url;
 
 use bdk::bitcoin::Address;
@@ -14,11 +14,11 @@ use bdk::blockchain::{
 use bdk::electrum_client::{Client, ElectrumApi, ListUnspentRes};
 use bdk::sled::{self, Tree};
 use bdk::wallet::AddressIndex::LastUnused;
-use std::collections::HashMap;
-use std::str::FromStr;
 use config::BitcoinOpts;
+use std::collections::HashMap;
 use std::fs;
 use std::path::PathBuf;
+use std::str::FromStr;
 
 pub fn gen_err() -> bdk::Error {
     bdk::Error::Generic(format!("oh no!"))
@@ -30,7 +30,6 @@ pub struct BTCWallet {
 }
 
 impl BTCWallet {
-
     pub fn prepare_home_dir(datadir: &str) -> PathBuf {
         let mut dir = PathBuf::new();
         dir.push(&dirs_next::home_dir().unwrap());
@@ -78,12 +77,11 @@ impl BTCWallet {
         addr: &str,
         from_height: Option<usize>,
     ) -> Result<Vec<ListUnspentRes>, bdk::Error> {
-        let monitor_script = Address::from_str(addr).map_err(|_| gen_err())?
+        let monitor_script = Address::from_str(addr)
+            .map_err(|_| gen_err())?
             .script_pubkey();
 
-        let unspents = self
-            .client
-            .script_list_unspent(&monitor_script)?;
+        let unspents = self.client.script_list_unspent(&monitor_script)?;
 
         let array = unspents
             .into_iter()
@@ -96,23 +94,18 @@ impl BTCWallet {
 
 impl BTCWallet {
     pub fn last_unused_address(&mut self) -> Result<String, bdk::Error> {
-        let _ = self.wallet
-            .sync(log_progress(), None);
-        Ok(self
-            .wallet
-            .get_address(LastUnused)?
-            .address
-            .to_string())
+        let _ = self.wallet.sync(log_progress(), None);
+        Ok(self.wallet.get_address(LastUnused)?.address.to_string())
     }
 
     pub fn is_my_address(&mut self, addr: &str) -> Result<bool, bdk::Error> {
-        let script = Address::from_str(addr).map_err(|_| gen_err())?
+        let script = Address::from_str(addr)
+            .map_err(|_| gen_err())?
             .script_pubkey();
         if self.wallet.is_mine(&script)? {
             return Ok(true);
         }
-        let _ = self.wallet
-            .sync(log_progress(), None);
+        let _ = self.wallet.sync(log_progress(), None);
         self.wallet.is_mine(&script)
     }
 

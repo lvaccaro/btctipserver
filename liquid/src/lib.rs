@@ -4,10 +4,10 @@ pub extern crate edk;
 extern crate structopt;
 
 use crate::config::LiquidOpts;
+use edk::bdk::electrum_client::Client;
+use edk::bdk::Error;
 use std::collections::HashMap;
 use std::str::FromStr;
-use edk::bdk::Error;
-use edk::bdk::electrum_client::Client;
 
 use edk::bdk::sled::{self, Tree};
 use edk::miniscript::elements::secp256k1_zkp;
@@ -26,7 +26,6 @@ pub fn gen_err() -> Error {
 }
 
 impl LiquidWallet {
-
     pub fn prepare_home_dir(datadir: &str) -> PathBuf {
         let mut dir = PathBuf::new();
         dir.push(&dirs_next::home_dir().unwrap());

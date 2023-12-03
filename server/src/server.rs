@@ -1,26 +1,29 @@
-use tiny_http::{Header, Server, Response, Method};
-use std::sync::{Arc, Mutex};
-use uriparse;
 use std::convert::TryFrom;
+use std::sync::{Arc, Mutex};
+use tiny_http::{Header, Method, Response, Server};
+use uriparse;
 
-use crate::{html, wallet};
 use crate::html::{not_found, Page};
-use wallet::{Wallet, Error, gen_err};
+use crate::{html, wallet};
+use wallet::{gen_err, Error, Wallet};
 
 pub fn run_server(url: &str, wallet: Wallet) {
     let wallet_mutex = Arc::new(Mutex::new(wallet));
     let server = Server::http(url).unwrap();
     for request in server.incoming_requests() {
-        println!("received request! method: {:?}, url: {:?}, headers: {:?}",
+        println!(
+            "received request! method: {:?}, url: {:?}, headers: {:?}",
             request.method(),
             request.url(),
             request.headers()
         );
         let mut wallet_lock = wallet_mutex.lock().unwrap();
         let parsed = uriparse::URIReference::try_from(request.url()).unwrap();
-        let content_type_header = "Content-Type: text/html; charset=utf-8".parse::<Header>().unwrap();
+        let content_type_header = "Content-Type: text/html; charset=utf-8"
+            .parse::<Header>()
+            .unwrap();
         println!("query");
-        println!("{}",parsed.query().unwrap().to_string().as_str());
+        println!("{}", parsed.query().unwrap().to_string().as_str());
 
         let response = match (request.method(), parsed.path().to_string().as_str()) {
             (&Method::Get, "/") => {
@@ -42,34 +45,31 @@ pub fn run_server(url: &str, wallet: Wallet) {
             }
             (_, _) => {
                 drop(wallet_lock);
-                Response::from_string(not_found()).with_status_code(404).with_header(content_type_header)
+                Response::from_string(not_found())
+                    .with_status_code(404)
+                    .with_header(content_type_header)
             }
         };
         request.respond(response).unwrap();
     }
 }
 
-pub fn redirect(
-    wallet: &mut Wallet
-) -> Result<String, Error> {
+pub fn redirect(wallet: &mut Wallet) -> Result<String, Error> {
     let address = wallet.last_unused_address()?;
     let link = format!("/?{}", address);
     html::redirect(link.as_str()).map_err(|_| gen_err())
 }
 
-pub fn page(
-    wallet: &mut Wallet,
-    uri: &str,
-) -> Result<String, Error> {
+pub fn page(wallet: &mut Wallet, uri: &str) -> Result<String, Error> {
     let mut page = Page {
         network: wallet.network()?,
         url: format!("{}", uri),
         address: format!("{}", uri),
-        ..Default::default() 
+        ..Default::default()
     };
 
     if uri.starts_with(wallet.schema()) {
-        println!("{}",wallet.schema());
+        println!("{}", wallet.schema());
         if let Ok(bip21) = btctipserver_bitcoin::bip21::Bip21::parse(uri) {
             page.address = bip21.address.to_string();
             if let Some(amount) = bip21.amount {

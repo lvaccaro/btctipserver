@@ -13,11 +13,7 @@ Clightning commando wallet options.
 #[derive(Debug, StructOpt, Clone, PartialEq)]
 pub struct ClightningOpts {
     /// Lightning peer node id
-    #[structopt(
-        name = "NODEID",
-        env = "NODEID",
-        long = "nodeid"
-    )]
+    #[structopt(name = "NODEID", env = "NODEID", long = "nodeid")]
     pub nodeid: String,
     /// Lightning peer node ip or hostname
     #[structopt(
@@ -28,17 +24,9 @@ pub struct ClightningOpts {
     )]
     pub host: String,
     /// Lightning rune auth from commando plugin
-    #[structopt(
-        name = "RUNE",
-        env = "RUNE",
-        long = "rune"
-    )]
+    #[structopt(name = "RUNE", env = "RUNE", long = "rune")]
     pub rune: String,
     /// Wallet output descriptor, use public keys only
-    #[structopt(
-        name = "PROXY",
-        env = "PROXY",
-        long = "proxy"
-    )]
+    #[structopt(name = "PROXY", env = "PROXY", long = "proxy")]
     pub proxy: String,
 }

@@ -28,12 +28,8 @@ fn main() {
     // Read env and commandline args
     let conf: ConfigOpts = ConfigOpts::from_args();
     let wallet = match conf.cmd {
-        Platforms::Bitcoin(opts) => {
-            Wallet::BTCWallet(BTCWallet::new(&opts).unwrap())
-        }
-        Platforms::Liquid(opts) => {
-            Wallet::LiquidWallet(LiquidWallet::new(&opts).unwrap())
-        }
+        Platforms::Bitcoin(opts) => Wallet::BTCWallet(BTCWallet::new(&opts).unwrap()),
+        Platforms::Liquid(opts) => Wallet::LiquidWallet(LiquidWallet::new(&opts).unwrap()),
         Platforms::CLightning(opts) => {
             Wallet::ClightningWallet(ClightningWallet::new(&opts).unwrap())
         }
