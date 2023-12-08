@@ -11,6 +11,8 @@ BTCTip Server is a self-hosted, open-source bitcoin payment processor.
 - ::point_up_2: host on heroku with a click, below button
 - :crab: written in rust
 
+![title](assets/preview.png)
+
 ### Get it start
 Build and run service (default port is 8080):
 ```
