@@ -1,0 +1,11 @@
+[package]
+name = "btctipserver-lightning"
+version = "0.1.1-dev"
+
+[dependencies]
+lnsocket = { git = "https://github.com/lvaccaro/lnsocket.git", rev = "34762a9750bfb45aa7c59474d720bf3efa1a10cf" }
+serde_json = { version = "^1.0" }
+dirs-next = "2.0.0"
+structopt = "0.3"
+random-string = "1.0.0"
+secp256k1-sys = "=0.4.1"

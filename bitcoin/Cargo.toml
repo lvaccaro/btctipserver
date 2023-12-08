@@ -1,0 +1,16 @@
+[package]
+name = "btctipserver-bitcoin"
+version = "0.1.1-dev"
+
+[dependencies]
+bdk = { version = "0.13.0", default-features = false }
+bdk-macros = "^0.6"
+dirs-next = "2.0.0"
+structopt = "0.3"
+rust-ini = "0.16"
+url = { version = "2", features = ["serde"] }
+percent-encoding = "2.1.0"
+
+[features]
+default = ["electrum", "bdk/key-value-db"]
+electrum = ["bdk/electrum"]

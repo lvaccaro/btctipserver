@@ -1,7 +1,10 @@
-use crate::config::BitcoinOpts;
-use crate::error::Error;
-use crate::server::gen_err;
-use crate::wallet::Wallet;
+pub mod bip21;
+pub mod config;
+
+pub extern crate bdk;
+extern crate percent_encoding;
+extern crate structopt;
+extern crate url;
 
 use bdk::bitcoin::Address;
 use bdk::blockchain::{
@@ -11,8 +14,15 @@ use bdk::blockchain::{
 use bdk::electrum_client::{Client, ElectrumApi, ListUnspentRes};
 use bdk::sled::{self, Tree};
 use bdk::wallet::AddressIndex::LastUnused;
+use config::BitcoinOpts;
 use std::collections::HashMap;
+use std::fs;
+use std::path::PathBuf;
 use std::str::FromStr;
+
+pub fn gen_err() -> bdk::Error {
+    bdk::Error::Generic(format!("oh no!"))
+}
 
 pub struct BTCWallet {
     wallet: bdk::Wallet<AnyBlockchain, Tree>,
@@ -20,9 +30,23 @@ pub struct BTCWallet {
 }
 
 impl BTCWallet {
-    pub fn new(conf: &BitcoinOpts) -> Result<Self, Error> {
+    pub fn prepare_home_dir(datadir: &str) -> PathBuf {
+        let mut dir = PathBuf::new();
+        dir.push(&dirs_next::home_dir().unwrap());
+        dir.push(datadir);
+
+        if !dir.exists() {
+            //info!("Creating home directory {}", dir.as_path().display());
+            fs::create_dir(&dir).unwrap();
+        }
+
+        dir.push("database.sled");
+        dir
+    }
+
+    pub fn new(conf: &BitcoinOpts) -> Result<Self, bdk::Error> {
         // setup database
-        let database = sled::open(<dyn Wallet>::prepare_home_dir(&conf.data_dir).to_str().unwrap())?;
+        let database = sled::open(Self::prepare_home_dir(&conf.data_dir).to_str().unwrap())?;
         let tree = database.open_tree(&conf.wallet)?;
 
         // setup electrum blockchain client
@@ -52,15 +76,12 @@ impl BTCWallet {
         &self,
         addr: &str,
         from_height: Option<usize>,
-    ) -> Result<Vec<ListUnspentRes>, simple_server::Error> {
+    ) -> Result<Vec<ListUnspentRes>, bdk::Error> {
         let monitor_script = Address::from_str(addr)
             .map_err(|_| gen_err())?
             .script_pubkey();
 
-        let unspents = self
-            .client
-            .script_list_unspent(&monitor_script)
-            .map_err(|_| gen_err())?;
+        let unspents = self.client.script_list_unspent(&monitor_script)?;
 
         let array = unspents
             .into_iter()
@@ -71,37 +92,28 @@ impl BTCWallet {
     }
 }
 
-impl Wallet for BTCWallet {
-    fn last_unused_address(&mut self) -> Result<String, simple_server::Error> {
-        self.wallet
-            .sync(log_progress(), None)
-            .map_err(|_| gen_err())?;
-        Ok(self
-            .wallet
-            .get_address(LastUnused)
-            .map_err(|_| gen_err())?
-            .address
-            .to_string())
+impl BTCWallet {
+    pub fn last_unused_address(&mut self) -> Result<String, bdk::Error> {
+        let _ = self.wallet.sync(log_progress(), None);
+        Ok(self.wallet.get_address(LastUnused)?.address.to_string())
     }
 
-    fn is_my_address(&mut self, addr: &str) -> Result<bool, simple_server::Error> {
+    pub fn is_my_address(&mut self, addr: &str) -> Result<bool, bdk::Error> {
         let script = Address::from_str(addr)
             .map_err(|_| gen_err())?
             .script_pubkey();
-        if self.wallet.is_mine(&script).map_err(|_| gen_err())? {
+        if self.wallet.is_mine(&script)? {
             return Ok(true);
         }
-        self.wallet
-            .sync(log_progress(), None)
-            .map_err(|_| gen_err())?;
-        self.wallet.is_mine(&script).map_err(|_| gen_err())
+        let _ = self.wallet.sync(log_progress(), None);
+        self.wallet.is_mine(&script)
     }
 
-    fn balance_address(
+    pub fn balance_address(
         &mut self,
         addr: &str,
         from_height: Option<usize>,
-    ) -> Result<HashMap<String, u64>, simple_server::Error> {
+    ) -> Result<HashMap<String, String>, bdk::Error> {
         let list = self.check_address(addr, from_height)?;
         let mut balances = HashMap::new();
 
@@ -115,11 +127,11 @@ impl Wallet for BTCWallet {
                 }
             }
         };
-        balances.insert("btc".to_string(), amount);
+        balances.insert("btc".to_string(), amount.to_string());
         Ok(balances)
     }
 
-    fn network(&mut self) -> Result<String, bdk::Error> {
+    pub fn network(&mut self) -> Result<String, bdk::Error> {
         Ok(self.wallet.network().to_string())
     }
 }

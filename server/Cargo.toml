@@ -1,0 +1,32 @@
+[package]
+name = "btctipserver"
+version = "0.1.1-dev"
+authors = ["Luca Vaccaro <me@lvaccaro.com>"]
+edition = "2018"
+license = "MIT"
+description = "Bitcoin payment service, based on bdk and electrum."
+repository = "https://github.com/lvaccaro/btctipserver"
+documentation = "https://docs.rs/btctipserver/"
+keywords = ["bitcoin", "wallet", "payment", "server"]
+readme = "README.md"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+btctipserver-bitcoin = { path = "../bitcoin" }
+btctipserver-lightning = { path = "../lightning" }
+btctipserver-liquid = { path = "../liquid" }
+tiny_http = "0.11"
+log = "0.4.0"
+env_logger = "0.8.2"
+dirs-next = "2.0.0"
+rust-ini = "0.16"
+structopt = "0.3"
+qr_code = { version="1.0.0", features = ["bmp"] }
+maud = "0.22.1"
+base64 = "0.13.0"
+uriparse = "0.6.4"
+
+[[bin]]
+name = "btctipserver"
+path = "src/main.rs"

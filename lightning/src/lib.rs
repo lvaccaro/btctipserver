@@ -1,16 +1,29 @@
-use crate::config::ClightningOpts;
-use crate::error::Error;
-use crate::wallet::Wallet;
+pub mod config;
 
+pub extern crate lnsocket;
+extern crate serde_json;
+extern crate structopt;
+
+use config::ClightningOpts;
 use std::collections::HashMap;
 use std::ffi::{CStr, CString};
-use lnsocket;
 
+/// Errors that can be thrown by the [`Wallet`](crate::wallet::Wallet)
+#[derive(Debug)]
+pub enum Error {
+    ConnectionClosed,
+    /// Generic error
+    Generic(String),
+}
+
+pub fn gen_err() -> Error {
+    Error::Generic(format!("oh no!"))
+}
 
 pub struct ClightningWallet {
     socket: lnsocket::lnsocket,
     conf: ClightningOpts,
-    connected : bool,
+    connected: bool,
 }
 unsafe impl Send for ClightningWallet {}
 
@@ -20,28 +33,35 @@ impl ClightningWallet {
             let sock = lnsocket::lnsocket_create();
             *sock
         };
-        unsafe { lnsocket::lnsocket_genkey(&mut socket); }
-        let mut wallet = ClightningWallet { 
+        unsafe {
+            lnsocket::lnsocket_genkey(&mut socket);
+        }
+        let mut wallet = ClightningWallet {
             socket: socket,
             conf: conf.clone(),
-            connected: false
+            connected: false,
         };
         wallet.connect().unwrap();
         Ok(wallet)
     }
 
-    fn connect(&mut self) -> Result<bool, simple_server::Error> {
+    fn connect(&mut self) -> Result<bool, Error> {
         let res_connect = unsafe {
             let c_node_id = CString::new(self.conf.nodeid.clone()).unwrap();
             let c_host = CString::new(self.conf.host.clone()).unwrap();
             let c_proxy = CString::new(self.conf.proxy.clone()).unwrap();
-            lnsocket::lnsocket_connect_tor(&mut self.socket, c_node_id.as_ptr(), c_host.as_ptr(), c_proxy.as_ptr())
+            lnsocket::lnsocket_connect_tor(
+                &mut self.socket,
+                c_node_id.as_ptr(),
+                c_host.as_ptr(),
+                c_proxy.as_ptr(),
+            )
         };
         if res_connect == 0 {
-            return Err(simple_server::Error::ConnectionClosed)
+            return Err(Error::ConnectionClosed);
         }
         assert_eq!(res_connect, 1);
-        let res_perform_init = unsafe { 
+        let _res_perform_init = unsafe {
             lnsocket::lnsocket_perform_init(&mut self.socket);
         };
         //assert_eq!(res_perform_init, 1);
@@ -49,19 +69,19 @@ impl ClightningWallet {
         Ok(true)
     }
 
-    fn call(&mut self, method: String, params: String) -> Result<String, simple_server::Error> {
+    fn call(&mut self, method: String, params: String) -> Result<String, Error> {
         return match self.call_internal(method.clone(), params.clone()) {
             Ok(txt) => Ok(txt),
             Err(_) => {
                 println!("reconnect");
                 let res_reconnect = self.connect()?;
                 assert_eq!(res_reconnect, true);
-                return self.call_internal(method, params)
+                return self.call_internal(method, params);
             }
-        }
+        };
     }
 
-    fn call_internal(&mut self, method: String, params: String) -> Result<String, simple_server::Error> {
+    fn call_internal(&mut self, method: String, params: String) -> Result<String, Error> {
         let params_ = {
             if params.is_empty() {
                 "[]".to_string()
@@ -84,7 +104,7 @@ impl ClightningWallet {
             lnsocket::lnsocket_write(&mut self.socket, cmd.as_ptr(), cmd.len() as u16)
         };
         if res_write == 0 {
-            return Err(simple_server::Error::ConnectionClosed)
+            return Err(Error::ConnectionClosed);
         }
         assert_eq!(res_write, 1);
 
@@ -96,9 +116,10 @@ impl ClightningWallet {
                 let mut typ: u16 = 0;
                 let addr = &mut t as *mut u8 as usize;
                 let mut uptr = addr as *mut u8;
-                let res_recv = lnsocket::lnsocket_recv(&mut self.socket, &mut typ, &mut uptr, &mut len);
+                let res_recv =
+                    lnsocket::lnsocket_recv(&mut self.socket, &mut typ, &mut uptr, &mut len);
                 if res_recv == 0 {
-                    return Err(simple_server::Error::ConnectionClosed)
+                    return Err(Error::ConnectionClosed);
                 }
                 assert_eq!(res_recv, 1);
                 println!("len {}", len);
@@ -106,21 +127,30 @@ impl ClightningWallet {
                 println!("typ {:?}", typ);
 
                 match typ {
-                    0x594d => { // terminate
+                    0x594d => {
+                        // terminate
                         *uptr.add(len as usize) = 0x00;
-                        let string = CStr::from_ptr(uptr.offset(8) as *mut i8).to_str().unwrap().to_string();
+                        let string = CStr::from_ptr(uptr.offset(8) as *mut i8)
+                            .to_str()
+                            .unwrap()
+                            .to_string();
                         output = [output, string].join("");
-                        return Ok(output)
+                        return Ok(output);
                     }
-                    0x594b => { // continue
+                    0x594b => {
+                        // continue
                         *uptr.add(len as usize) = 0x00;
-                        let string = CStr::from_ptr(uptr.offset(8) as *mut i8).to_str().unwrap().to_string();
+                        let string = CStr::from_ptr(uptr.offset(8) as *mut i8)
+                            .to_str()
+                            .unwrap()
+                            .to_string();
                         output = [output, string].join("");
                     }
                     18 => { //pong
                     }
-                    _ => { // unexpected
-                        return Err(simple_server::Error::ConnectionClosed)
+                    _ => {
+                        // unexpected
+                        return Err(Error::ConnectionClosed);
                     }
                 }
             }
@@ -149,8 +179,7 @@ impl ClightningWallet {
     }
 
     fn new_invoice(&mut self, msat: String, label: String) -> Result<serde_json::Value, Error> {
-        let params = format!("[\"{}\", \"{}\", \"{}\"]",
-            msat, label, "");
+        let params = format!("[\"{}\", \"{}\", \"{}\"]", msat, label, "");
         let resp = self.call("invoice".to_string(), params).unwrap();
         println!("{}", resp);
         let result: serde_json::Value = serde_json::from_str(resp.as_str()).unwrap();
@@ -171,14 +200,14 @@ impl Drop for ClightningWallet {
         println!("exit");
     }
 }
-impl Wallet for ClightningWallet {
-    fn last_unused_address(&mut self) -> Result<String, simple_server::Error> {
+impl ClightningWallet {
+    pub fn last_unused_address(&mut self) -> Result<String, Error> {
         //let address = self.wallet.get_new_address().map_err(|_| gen_err())?;
         if !self.connected {
             self.connect().unwrap();
         }
-		//let params = format!("[\"%dmsat\", \"%s\", \"%s\"]",
-		//	params.Msatoshi, label, params.Description)
+        //let params = format!("[\"%dmsat\", \"%s\", \"%s\"]",
+        //	params.Msatoshi, label, params.Description)
 
         let charset = "abcdefghijklmnopqrstuvwxyz";
         let label = random_string::generate(8, charset);
@@ -188,7 +217,7 @@ impl Wallet for ClightningWallet {
         Ok(bolt11.to_string())
     }
 
-    fn is_my_address(&mut self, addr: &str) -> Result<bool, simple_server::Error> {
+    pub fn is_my_address(&mut self, addr: &str) -> Result<bool, Error> {
         let result = self.decode(addr).unwrap();
         println!("{}", result);
         let payee = result["result"]["payee"].as_str().unwrap();
@@ -196,11 +225,11 @@ impl Wallet for ClightningWallet {
         Ok(valid && payee == self.conf.nodeid)
     }
 
-    fn balance_address(
+    pub fn balance_address(
         &mut self,
         addr: &str,
         _from_height: Option<usize>,
-    ) -> Result<HashMap<String, u64>, simple_server::Error> {
+    ) -> Result<HashMap<String, String>, Error> {
         let mut balances = HashMap::new();
         let decoded = self.decode(addr).unwrap();
         let payment_hash = decoded["result"]["payment_hash"].as_str().unwrap();
@@ -214,14 +243,14 @@ impl Wallet for ClightningWallet {
                 let msat = invoice["amount_received_msat"].as_str().unwrap();
                 let amount = &msat[0..msat.len() - 3];
                 amount.parse::<u64>().unwrap()
-            },
-            _ => 0
+            }
+            _ => 0,
         };
-        balances.insert(addr.to_string(), msat);
+        balances.insert(addr.to_string(), msat.to_string());
         Ok(balances)
     }
 
-    fn network(&mut self) -> Result<String, bdk::Error> {
+    pub fn network(&mut self) -> Result<String, Error> {
         if !self.connected {
             self.connect().unwrap();
         }
