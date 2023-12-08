@@ -113,7 +113,7 @@ impl BTCWallet {
         &mut self,
         addr: &str,
         from_height: Option<usize>,
-    ) -> Result<HashMap<String, u64>, bdk::Error> {
+    ) -> Result<HashMap<String, String>, bdk::Error> {
         let list = self.check_address(addr, from_height)?;
         let mut balances = HashMap::new();
 
@@ -127,7 +127,7 @@ impl BTCWallet {
                 }
             }
         };
-        balances.insert("btc".to_string(), amount);
+        balances.insert("btc".to_string(), amount.to_string());
         Ok(balances)
     }
 

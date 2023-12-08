@@ -1,12 +1,15 @@
 pub mod config;
+pub mod esplora;
 
 pub extern crate edk;
+extern crate reqwest;
 extern crate structopt;
 
 use crate::config::LiquidOpts;
 use edk::bdk::electrum_client::Client;
 use edk::bdk::Error;
 use std::collections::HashMap;
+use std::ops::Div;
 use std::str::FromStr;
 
 use edk::bdk::sled::{self, Tree};
@@ -14,11 +17,13 @@ use edk::miniscript::elements::secp256k1_zkp;
 use edk::miniscript::elements::slip77::MasterBlindingKey;
 use edk::miniscript::elements::Address;
 use edk::miniscript::{Descriptor, DescriptorPublicKey};
+use esplora::EsploraRepository;
 use std::fs;
 use std::path::PathBuf;
 
 pub struct LiquidWallet {
     wallet: edk::Wallet<Tree>,
+    esplora: EsploraRepository,
 }
 
 pub fn gen_err() -> Error {
@@ -63,7 +68,12 @@ impl LiquidWallet {
             opts.network(),
         )
         .unwrap();
-        Ok(LiquidWallet { wallet })
+        Ok(LiquidWallet {
+            wallet,
+            esplora: EsploraRepository {
+                assets: HashMap::new(),
+            },
+        })
     }
 }
 
@@ -82,7 +92,7 @@ impl LiquidWallet {
         &mut self,
         addr: &str,
         _from_height: Option<usize>,
-    ) -> Result<HashMap<String, u64>, Error> {
+    ) -> Result<HashMap<String, String>, Error> {
         let addr = Address::from_str(addr).map_err(|_| gen_err())?;
         let mut balances = HashMap::new();
         for unblind in self
@@ -92,9 +102,23 @@ impl LiquidWallet {
             .unblinds
         {
             let tx_out = unblind.1;
-            *balances.entry(tx_out.asset.to_string()).or_insert(0) += tx_out.value;
+            *balances.entry(tx_out.asset).or_insert(0) += tx_out.value;
         }
-        Ok(balances)
+
+        let res = balances
+            .into_iter()
+            .filter_map(|(key, value)| {
+                let asset_id = key.to_string();
+                match self.esplora.get(asset_id.clone()) {
+                    Ok(asset) => Some((
+                        format!("{} ({})", asset.name, asset_id),
+                        (value / 10_u64.pow(asset.precision.into())).to_string(),
+                    )),
+                    Err(_) => Some((key.to_string(), value.to_string())),
+                }
+            })
+            .collect();
+        Ok(res)
     }
 
     pub fn network(&mut self) -> Result<String, Error> {

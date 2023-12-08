@@ -47,7 +47,7 @@ impl Wallet {
         &mut self,
         addr: &str,
         _from_height: Option<usize>,
-    ) -> Result<HashMap<String, u64>, Error> {
+    ) -> Result<HashMap<String, String>, Error> {
         match self {
             Wallet::BTCWallet(w) => w.balance_address(addr, _from_height).map_err(|_| gen_err()),
             Wallet::LiquidWallet(w) => w.balance_address(addr, _from_height).map_err(|_| gen_err()),

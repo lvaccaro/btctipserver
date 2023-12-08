@@ -229,7 +229,7 @@ impl ClightningWallet {
         &mut self,
         addr: &str,
         _from_height: Option<usize>,
-    ) -> Result<HashMap<String, u64>, Error> {
+    ) -> Result<HashMap<String, String>, Error> {
         let mut balances = HashMap::new();
         let decoded = self.decode(addr).unwrap();
         let payment_hash = decoded["result"]["payment_hash"].as_str().unwrap();
@@ -246,7 +246,7 @@ impl ClightningWallet {
             }
             _ => 0,
         };
-        balances.insert(addr.to_string(), msat);
+        balances.insert(addr.to_string(), msat.to_string());
         Ok(balances)
     }
 

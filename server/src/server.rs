@@ -85,7 +85,6 @@ pub fn page(wallet: &mut Wallet, uri: &str) -> Result<String, Error> {
         .balance_address(&page.address, Option::from(0))
         .map_err(|_| gen_err())?
         .into_iter()
-        .filter(|(_, v)| *v > 0)
         .map(|(k, v)| (k.clone(), v.clone()))
         .map(|(k, v)| format!("{}: {}", k, v))
         .collect::<Vec<String>>()
