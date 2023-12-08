@@ -11,19 +11,17 @@ pub fn run_server(url: &str, wallet: Wallet) {
     let wallet_mutex = Arc::new(Mutex::new(wallet));
     let server = Server::http(url).unwrap();
     for request in server.incoming_requests() {
-        println!(
-            "received request! method: {:?}, url: {:?}, headers: {:?}",
-            request.method(),
-            request.url(),
-            request.headers()
-        );
+        //println!(
+        //    "received request! method: {:?}, url: {:?}, headers: {:?}",
+        //    request.method(),
+        //    request.url(),
+        //    request.headers()
+        //);
         let mut wallet_lock = wallet_mutex.lock().unwrap();
         let parsed = uriparse::URIReference::try_from(request.url()).unwrap();
         let content_type_header = "Content-Type: text/html; charset=utf-8"
             .parse::<Header>()
             .unwrap();
-        println!("query");
-        println!("{}", parsed.query().unwrap().to_string().as_str());
 
         let response = match (request.method(), parsed.path().to_string().as_str()) {
             (&Method::Get, "/") => {
