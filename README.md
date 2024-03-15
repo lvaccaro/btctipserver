@@ -2,13 +2,13 @@ BTCTipServer
 ===
 BTCTip Server is a self-hosted, open-source bitcoin payment processor. 
 
-- :coin: use [bdk](https://github.com/bitcoindevkit/bdk) a modern, lightweight, descriptor-based wallet library
+- :coin: use [Bitcoin Development Kit](https://github.com/bitcoindevkit/bdk) a modern, lightweight, descriptor-based wallet library
 - :zap: lightning support with [lnsocket](https://github.com/jb55/lnsocket), remote commando plugin
-- :droplet: liquid and assets support with [edk](https://github.com/lvaccaro/edk)
+- :droplet: liquid and assets support with [Liquid Wallet Kit](https://github.com/blockstream/lwk)
 - :gear: usage wallet descriptors to build complex address rules
 - :ninja: keep funds safe without privatekey/secret usage
 - :watch: pay host to usage, no required instance always online
-- ::point_up_2: host on heroku with a click, below button
+- :point_up_2: host on heroku with a click, below button
 - :crab: written in rust
 
 ![title](assets/preview.png)
@@ -28,9 +28,9 @@ btctipserver bitcoin --network bitcoin --server "ssl://blockstream.info:700" --d
 ```
 
 ### Liquid
-For a liquid, pass the descriptor, the master blinding key and network (liquid or elements)
+For a liquid, pass the CT descriptor with the master blinding key and network (liquid, liquidtestnet or elements)
 ```
-btctipserver liquid --network liquid --server "ssl://blockstream.info:995" --descriptor "elwpkh(xpub6F33eZ1QWddkNKw27gdgACBGorYVU4iqJQwMDL85jVeiZKSjFbnKhJr15DtzBuiDLHAEr2aXk2aXahLq8Jpt9KZh1ubHuCc9Nbf65d65kPH/*)#yvsg4jzf" --master_blinding_key ""
+btctipserver liquid --network liquidtestnet --server "blockstream.info:465" --descriptor "ct(slip77(ab5824f4477b4ebb00a132adfd8eb0b7935cf24f6ac151add5d1913db374ce92),elwpkh([759db348/84'/1'/0']tpubDCRMaF33e44pcJj534LXVhFbHibPbJ5vuLhSSPFAw57kYURv4tzXFL6LSnd78bkjqdmE3USedkbpXJUPA1tdzKfuYSL7PianceqAhwL2UkA/<0;1>/*))#cch6wrnp"
 ```
 
 ### Lightning
