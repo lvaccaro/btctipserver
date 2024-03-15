@@ -1,3 +1,4 @@
+use std::str::FromStr;
 use structopt::StructOpt;
 
 // This is a workaround for `structopt` issue #333, #391, #418; see https://github.com/TeXitoi/structopt/issues/333#issuecomment-712265332
@@ -15,9 +16,9 @@ pub struct LiquidOpts {
     /// Data Dir
     #[structopt(
         name = "DATADIR",
-        env = "EDK_DATADIR",
+        env = "LWK_DATADIR",
         long = "datadir",
-        default_value = ".edk-bitcoin"
+        default_value = ".lwk"
     )]
     pub data_dir: String,
     /// Liquid network
@@ -26,8 +27,8 @@ pub struct LiquidOpts {
         env = "NETWORK",
         short = "n",
         long = "network",
-        default_value = "elements",
-        possible_values = &["liquid","elements"]
+        default_value = "liquidtestnet",
+        possible_values = &["liquid","liquidtestnet","elements"]
     )]
     pub network: String,
     /// Wallet output descriptor, use public keys only
@@ -38,31 +39,21 @@ pub struct LiquidOpts {
         long = "descriptor"
     )]
     pub descriptor: String,
-    /// Wallet output descriptor, use public keys only
-    #[structopt(
-        name = "MASTER_BLINDING_KEY",
-        env = "MASTER_BLINDING_KEY",
-        short = "b",
-        long = "master_blinding_key"
-    )]
-    pub master_blinding_key: String,
-    /// Wallet name
-    #[structopt(
-        name = "WALLET",
-        env = "WALLET",
-        short = "w",
-        long = "wallet",
-        default_value = "btctipserver"
-    )]
-    pub wallet: String,
     #[structopt(flatten)]
     pub electrum_opts: ElectrumOpts,
 }
 impl LiquidOpts {
-    pub fn network(&self) -> &'static edk::miniscript::elements::AddressParams {
+    pub fn network(&self) -> lwk_wollet::ElementsNetwork {
         match self.network.as_str() {
-            "liquid" => &edk::miniscript::elements::AddressParams::LIQUID,
-            _ => &edk::miniscript::elements::AddressParams::ELEMENTS,
+            "liquid" => lwk_wollet::ElementsNetwork::Liquid,
+            "liquidtestnet" => lwk_wollet::ElementsNetwork::LiquidTestnet,
+            _ => {
+                let policy_asset =
+                    "5ac9f65c0efcc4775e0baec4ec03abdde22473cd3cf33c0419ca290e0751b225";
+                let policy_asset =
+                    lwk_wollet::elements::AssetId::from_str(policy_asset).expect("static");
+                lwk_wollet::ElementsNetwork::ElementsRegtest { policy_asset }
+            }
         }
     }
 }

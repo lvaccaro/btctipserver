@@ -1,28 +1,26 @@
 pub mod config;
 pub mod esplora;
 
-pub extern crate edk;
+pub extern crate lwk_wollet;
 extern crate reqwest;
 extern crate structopt;
 
 use crate::config::LiquidOpts;
-use edk::bdk::electrum_client::Client;
-use edk::bdk::Error;
-use std::collections::HashMap;
-use std::ops::Div;
-use std::str::FromStr;
+use lwk_wollet::elements::Address;
+use lwk_wollet::{
+    full_scan_with_electrum_client, ElectrumClient, ElectrumUrl, Error, FsPersister, Wollet,
+};
 
-use edk::bdk::sled::{self, Tree};
-use edk::miniscript::elements::secp256k1_zkp;
-use edk::miniscript::elements::slip77::MasterBlindingKey;
-use edk::miniscript::elements::Address;
-use edk::miniscript::{Descriptor, DescriptorPublicKey};
 use esplora::EsploraRepository;
+use std::collections::HashMap;
 use std::fs;
 use std::path::PathBuf;
+use std::str::FromStr;
 
 pub struct LiquidWallet {
-    wallet: edk::Wallet<Tree>,
+    network: lwk_wollet::ElementsNetwork,
+    wollet: Wollet,
+    electrum: ElectrumClient,
     esplora: EsploraRepository,
 }
 
@@ -40,36 +38,33 @@ impl LiquidWallet {
             //info!("Creating home directory {}", dir.as_path().display());
             fs::create_dir(&dir).unwrap();
         }
-
-        dir.push("database.sled");
         dir
     }
 
     pub fn new(opts: &LiquidOpts) -> Result<Self, Error> {
         // setup database
-        let database = sled::open(Self::prepare_home_dir(&opts.data_dir).to_str().unwrap())?;
-        let tree = database.open_tree(&opts.wallet)?;
-
-        // setup electrum blockchain client
-        let client = Client::new(&opts.electrum_opts.electrum).unwrap();
+        let datadir = Self::prepare_home_dir(&opts.data_dir);
+        //let tree = database.open_tree(&opts.wallet)?;
 
         // setup keys variables
-        let descriptor = Descriptor::<DescriptorPublicKey>::from_str(&opts.descriptor).unwrap();
-        let decoded: &[u8] = &hex::decode(&opts.master_blinding_key.as_str()).unwrap();
-        let master_blinding_key =
-            MasterBlindingKey(secp256k1_zkp::SecretKey::from_slice(decoded).unwrap());
-
-        // create wallet shared by all requests
-        let wallet = edk::Wallet::new(
-            descriptor,
-            master_blinding_key,
-            tree,
-            client,
+        //let descriptor: WolletDescriptor = opts.descriptor.parse()?;
+        let mut wollet = Wollet::new(
             opts.network(),
+            FsPersister::new(&datadir).unwrap(),
+            opts.descriptor.as_str(),
         )
         .unwrap();
+
+        // setup electrum blockchain client
+        let electrum_url = ElectrumUrl::new(&opts.electrum_opts.electrum, true, true);
+        let mut electrum_client = ElectrumClient::new(&electrum_url)?;
+
+        full_scan_with_electrum_client(&mut wollet, &mut electrum_client)?;
+
         Ok(LiquidWallet {
-            wallet,
+            network: opts.network(),
+            wollet,
+            electrum: electrum_client,
             esplora: EsploraRepository {
                 assets: HashMap::new(),
             },
@@ -79,13 +74,14 @@ impl LiquidWallet {
 
 impl LiquidWallet {
     pub fn last_unused_address(&mut self) -> Result<String, Error> {
-        let address = self.wallet.get_new_address().map_err(|_| gen_err())?;
-        Ok(address.to_string())
+        let address = self.wollet.address(None).map_err(|_| gen_err())?;
+        Ok(address.address().to_string())
     }
 
     pub fn is_my_address(&mut self, addr: &str) -> Result<bool, Error> {
-        let address = Address::from_str(addr).map_err(|_| gen_err())?;
-        self.wallet.is_mine_address(&address).map_err(|_| gen_err())
+        let _address = Address::from_str(addr).map_err(|_| gen_err())?;
+        //self.wollet.is_mine_address(&address).map_err(|_| gen_err())
+        Ok(true)
     }
 
     pub fn balance_address(
@@ -93,38 +89,39 @@ impl LiquidWallet {
         addr: &str,
         _from_height: Option<usize>,
     ) -> Result<HashMap<String, String>, Error> {
-        let addr = Address::from_str(addr).map_err(|_| gen_err())?;
-        let mut balances = HashMap::new();
-        for unblind in self
-            .wallet
-            .balance_addresses(vec![addr])
-            .map_err(|_| gen_err())?
-            .unblinds
-        {
-            let tx_out = unblind.1;
-            *balances.entry(tx_out.asset).or_insert(0) += tx_out.value;
-        }
-
-        let res = balances
+        full_scan_with_electrum_client(&mut self.wollet, &mut self.electrum)?;
+        let script_pubkey = Address::from_str(addr).unwrap().script_pubkey();
+        let tx_outs = self
+            .wollet
+            .utxos()
+            .unwrap()
             .into_iter()
-            .filter_map(|(key, value)| {
-                let asset_id = key.to_string();
-                match self.esplora.get(asset_id.clone()) {
-                    Ok(asset) => Some((
-                        format!("{} ({})", asset.name, asset_id),
-                        (value / 10_u64.pow(asset.precision.into())).to_string(),
-                    )),
-                    Err(_) => Some((key.to_string(), value.to_string())),
-                }
-            })
-            .collect();
+            .filter(|x| x.script_pubkey == script_pubkey);
+        let mut balance = HashMap::new();
+        for out in tx_outs {
+            let asset_id = out.unblinded.asset;
+            let precision = self.esplora.get(asset_id).map_or(0, |x| x.precision);
+            let decimal = (10 as f64).powf(precision as f64);
+            let value = out.unblinded.value as f64 / decimal;
+            balance
+                .entry(out.unblinded.asset)
+                .and_modify(|x| *x += value)
+                .or_insert(value);
+        }
+        let mut res = HashMap::new();
+        for b in balance {
+            let ticker = self.esplora.get(b.0).map_or(b.0.to_string(), |x| x.ticker);
+            res.insert(ticker, format!("{}", b.1));
+        }
+        println!("balance {:?}", res);
         Ok(res)
     }
 
     pub fn network(&mut self) -> Result<String, Error> {
-        match self.wallet.network() {
-            &edk::miniscript::elements::AddressParams::LIQUID => Ok("liquid".to_string()),
-            _ => Ok("elements".to_string()),
+        match self.network {
+            lwk_wollet::ElementsNetwork::Liquid => Ok("Liquid".to_string()),
+            lwk_wollet::ElementsNetwork::LiquidTestnet => Ok("Liquid Testnet".to_string()),
+            _ => Ok("Elements".to_string()),
         }
     }
 }
